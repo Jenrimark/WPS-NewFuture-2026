@@ -3,7 +3,10 @@ Debug/
 Release/
 *.obj
 x64
-.vs
+.vs/
+.vscode
+.kiro
+.cursor
 *.exe
 /test
 
