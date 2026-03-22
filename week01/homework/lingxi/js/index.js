@@ -163,9 +163,20 @@ function bindEvents() {
   // 发送
   sendBtn.addEventListener('click', handleSend);
   chatInput.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
+    if (e.key === 'Enter' && !e.shiftKey && !e.altKey) {
       e.preventDefault();
       handleSend();
+    } else if (e.key === 'Enter' && e.altKey) {
+      // ⌥ Option+Enter：手动插入换行
+      e.preventDefault();
+      const start = chatInput.selectionStart;
+      const end = chatInput.selectionEnd;
+      chatInput.value = chatInput.value.slice(0, start) + '\n' + chatInput.value.slice(end);
+      chatInput.selectionStart = chatInput.selectionEnd = start + 1;
+      autoResize(chatInput);
+      toggleSendBtn();
+    } else if (e.key === 'Enter' && e.shiftKey) {
+      setTimeout(() => { autoResize(chatInput); }, 0);
     }
   });
 
@@ -206,6 +217,9 @@ function bindEvents() {
   collapseBtn.addEventListener('click', () => {
     sidebar.classList.toggle('collapsed');
     collapseBtn.classList.toggle('is-collapsed');
+    const isCollapsed = sidebar.classList.contains('collapsed');
+    collapseBtn.innerHTML = `<i data-lucide="${isCollapsed ? 'panel-left-open' : 'panel-left-close'}"></i>`;
+    lucide.createIcons();
   });
 
   // 模型选择器
@@ -491,10 +505,9 @@ async function regenMessage(aiMsgEl) {
   }
   const contextMessages = msgCutIdx >= 0 ? messages.slice(0, msgCutIdx) : messages.slice(0, -1);
 
-  // 新增一个版本页
+  // 新增一个版本页（先不更新翻页器，等生成完再显示）
   aiMsgEl._versions.push('');
   aiMsgEl._currentPage = aiMsgEl._versions.length - 1;
-  aiMsgEl._updatePager?.();
 
   const bubble = aiMsgEl.querySelector('.msg-bubble');
   bubble.innerHTML = '<div class="loading-dots"><span></span><span></span><span></span></div>';
@@ -649,9 +662,9 @@ function appendAiMessage(content) {
             <span class="msg-pager-label">1/1</span>
             <button class="msg-pager-btn next-btn" disabled>›</button>
           </div>
-          <button class="msg-action-btn copy-btn" title="复制回答">📋 复制</button>
-          <button class="msg-action-btn regen-btn" title="重新生成">🔄 重新生成</button>
-          <button class="msg-action-btn danger del-btn" title="删除此对话">🗑 删除</button>
+          <button class="msg-action-btn copy-btn" title="复制回答"><i data-lucide="copy"></i> <span class="btn-text">复制</span></button>
+          <button class="msg-action-btn regen-btn" title="重新生成"><i data-lucide="refresh-cw"></i> <span class="btn-text">重新生成</span></button>
+          <button class="msg-action-btn danger del-btn" title="删除此对话"><i data-lucide="trash-2"></i> <span class="btn-text">删除</span></button>
         </div>
       </div>
     </div>`;
@@ -704,6 +717,7 @@ function appendAiMessage(content) {
 
   messagesContainer.appendChild(div);
   chatArea.scrollTop = chatArea.scrollHeight;
+  lucide.createIcons();
   return div;
 }
 
@@ -1046,9 +1060,9 @@ function renderHistoryList() {
       });
     } else {
       item.innerHTML = `
-        <span class="item-icon">💬</span>
+        <span class="item-icon"><i data-lucide="message-circle"></i></span>
         <span class="item-title">${session.title}</span>
-        <button class="item-delete-btn" title="删除">🗑</button>`;
+        <button class="item-delete-btn" title="删除"><i data-lucide="trash-2"></i></button>`;
       item.querySelector('.item-title').addEventListener('click', () => loadSession(session.id));
       item.querySelector('.item-icon').addEventListener('click', () => loadSession(session.id));
       item.querySelector('.item-delete-btn').addEventListener('click', (e) => {
@@ -1063,6 +1077,7 @@ function renderHistoryList() {
 
     historyList.appendChild(item);
   });
+  lucide.createIcons();
 }
 
 function updateManageBar() {
@@ -1129,6 +1144,8 @@ async function loadSession(id) {
     } else if (msg.role === 'assistant') {
       messages.push(msg);
       const el = appendAiMessage('');
+      el._versions.push(msg.content);
+      el._currentPage = 0;
       el.querySelector('.msg-bubble').innerHTML = parseMarkdown(msg.content);
     }
   }
@@ -1154,9 +1171,12 @@ function applyTheme() {
 }
 
 function updateThemeIcons(theme) {
-  const icon = theme === 'dark' ? '☀️' : '🌙';
-  document.getElementById('theme-btn').textContent = icon + ' 切换主题';
-  document.getElementById('theme-btn-top').textContent = icon;
+  const iconName = theme === 'dark' ? 'sun' : 'moon';
+  const sidebarBtn = document.getElementById('theme-btn');
+  sidebarBtn.innerHTML = `<i data-lucide="${iconName}"></i> 切换主题`;
+  const topBtn = document.getElementById('theme-btn-top');
+  topBtn.innerHTML = `<i data-lucide="${iconName}"></i>`;
+  lucide.createIcons();
 }
 
 // ===== API Key Modal =====
@@ -1281,3 +1301,4 @@ window.toggleThinking = function(header) {
 
 // ===== 启动 =====
 init();
+lucide.createIcons();

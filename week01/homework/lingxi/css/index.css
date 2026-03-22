@@ -223,6 +223,15 @@ body { background: var(--bg-primary); color: var(--text-primary); transition: ba
 }
 .sidebar-btn:hover { background: rgba(99,102,241,0.08); color: var(--accent1); }
 
+/* ===== Lucide Icons ===== */
+[data-lucide] { width: 16px; height: 16px; stroke-width: 2; vertical-align: middle; flex-shrink: 0; }
+.icon-btn [data-lucide] { width: 18px; height: 18px; }
+.send-btn [data-lucide], .stop-btn [data-lucide] { width: 18px; height: 18px; }
+.card-icon [data-lucide] { width: 28px; height: 28px; stroke-width: 1.5; color: #fff; }
+.modal-icon [data-lucide] { width: 32px; height: 32px; }
+.msg-action-btn [data-lucide] { width: 14px; height: 14px; }
+.new-chat-btn [data-lucide] { width: 18px; height: 18px; }
+
 /* ===== Main ===== */
 .main {
   flex: 1;
@@ -393,11 +402,16 @@ body { background: var(--bg-primary); color: var(--text-primary); transition: ba
   word-break: break-word;
 }
 
+.message.ai .msg-bubble {
+  min-width: 300px;
+}
+
 .message.user .msg-bubble {
   background: var(--user-bubble);
   color: #fff;
   border-bottom-right-radius: 4px;
   box-shadow: 0 4px 16px rgba(99,102,241,0.3);
+  white-space: pre-wrap;
 }
 
 .message.ai .msg-bubble {
@@ -605,6 +619,7 @@ body { background: var(--bg-primary); color: var(--text-primary); transition: ba
 .stop-btn:hover { transform: scale(1.1); }
 
 .input-hint { font-size: 11px; color: var(--text-muted); text-align: center; margin-top: 8px; }
+.input-disclaimer { font-size: 11px; color: var(--text-muted); text-align: center; margin-top: 4px; opacity: 0.6; }
 
 /* ===== API Key Modal ===== */
 .modal-overlay {
@@ -846,6 +861,7 @@ body { background: var(--bg-primary); color: var(--text-primary); transition: ba
   display: flex; align-items: center; gap: 4px;
   margin-top: 4px; opacity: 0;
   transition: opacity 0.15s;
+  flex-wrap: wrap;
 }
 .message.ai:hover .msg-actions { opacity: 1; }
 
@@ -860,6 +876,13 @@ body { background: var(--bg-primary); color: var(--text-primary); transition: ba
 }
 .msg-action-btn:hover { background: rgba(99,102,241,0.1); color: var(--accent1); border-color: var(--accent1); }
 .msg-action-btn.danger:hover { background: rgba(248,113,113,0.1); color: #f87171; border-color: #f87171; }
+
+/* 气泡窄时隐藏按钮文字，只保留图标 */
+.msg-footer { container-type: inline-size; }
+@container (max-width: 300px) {
+  .btn-text { display: none; }
+  .msg-action-btn { padding: 3px 6px; }
+}
 
 /* 翻页器 */
 .msg-pager {

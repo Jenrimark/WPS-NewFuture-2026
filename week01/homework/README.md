@@ -56,23 +56,40 @@
 
 ## 核心技术实现
 
-### 1. 流式输出 + 打字机效果
-使用 `fetch` + `ReadableStream` 逐块读取 SSE 数据，解析 `data:` 行后提取 `delta.content`，实时追加到 DOM，同时用 `marked.js` 增量渲染 Markdown。
+### 1. SSE 流式输出 + 实时 Markdown 渲染
+阿里云百炼返回 `text/event-stream`，用 `fetch` + `response.body.getReader()` 逐 chunk 读取，按 `\n` 分割后提取 `data:` 行解析 JSON。每次收到 `delta.content` 就追加到气泡并调用 `marked.parse()` 重新渲染，实现打字机效果的同时保证 Markdown 结构完整。
 
-### 2. 图片持久化（IndexedDB）
-`localStorage` 有 5MB 上限，图片 base64 改存 IndexedDB（`lingxi-images` 库）。会话 JSON 里只保存 `__imgref__:<uuid>` 引用，加载时异步从 DB 取回还原。导出时把所有引用图片打包进 JSON 的 `images` 字段，导入时先写回 DB 再恢复会话。
+```js
+// 核心读取循环
+while (true) {
+  const { done, value } = await reader.read();
+  if (done) break;
+  buffer += decoder.decode(value, { stream: true });
+  const lines = buffer.split('\n');
+  buffer = lines.pop();
+  for (const line of lines) {
+    if (!line.startsWith('data:')) continue;
+    const json = JSON.parse(line.slice(5).trim());
+    const delta = json.choices[0].delta;
+    if (delta.content) bubble.innerHTML = parseMarkdown(accumulated += delta.content);
+  }
+}
+```
 
-### 3. 多模型 + 深度思考
-顶栏下拉框分三组（通用 / 视觉 / 深度思考），选中模型存 `localStorage`。深度思考模型请求体自动附加 `enable_thinking: true`，响应中 `delta.reasoning_content` 渲染为可折叠的紫色推理块。
+### 2. IndexedDB 图片持久化 + 引用机制
+`localStorage` 只有 5MB，直接存 base64 图片必然溢出。方案：图片存 IndexedDB（`lingxi-images` 对象库），key 为 `crypto.randomUUID()` 生成的 uuid，session 的 messages 数组只存 `__imgref__:<uuid>` 字符串。加载会话时异步批量从 DB 取回，导出时把所有引用图片打包进 JSON 的 `images` 字段，导入时先写回 DB 再恢复 session，实现完整的离线备份。
 
-### 4. PDF 解析
-引入 CDN 版 `pdf.js`，`readPdfFile` 逐页调用 `page.getTextContent()` 拼接文字，作为系统上下文注入消息。
+### 3. 深度思考模型双流渲染
+深度思考模型（如 qwen3）会同时返回 `delta.reasoning_content`（推理过程）和 `delta.content`（最终回答）。两个字段分别维护独立的字符串缓冲区，推理内容渲染到可折叠的紫色 `<details>` 块，正文内容渲染到主气泡，互不干扰。请求体自动附加 `enable_thinking: true`。
 
-### 5. AI 回复版本管理
-每条 AI 消息维护 `_versions[]` 数组，重新生成时追加新版本，翻页器显示 `‹ 1/2 ›`，各版本独立存储原始 Markdown。
+### 4. AbortController 中断生成
+发起请求前创建 `AbortController`，将 `signal` 传入 `fetch`。用户点击停止按钮时调用 `controller.abort()`，`reader.read()` 会抛出 `AbortError`，catch 后正常收尾，已生成的内容保留。
 
-### 6. 会话管理
-会话列表存 `localStorage`（key: `lingxi-sessions`），每条会话含 `id / title / messages / model / createdAt`。切换会话时异步从 IndexedDB 还原图片引用，保证图片正常显示。
+### 5. AI 回复多版本管理
+每个 AI 消息 DOM 节点上挂 `_versions[]` 数组和 `_currentPage` 指针。重新生成时 `push` 新版本，翻页器显示 `‹ 1/N ›`，切换页时只替换 `bubble.innerHTML`，各版本原始 Markdown 独立保存，复制时取当前版本。
+
+### 6. CSS 变量主题切换
+所有颜色通过 `:root` CSS 变量定义，深色主题用 `[data-theme="dark"]` 覆盖变量值。切换时只改 `document.documentElement.dataset.theme`，无需重载页面，状态存 `localStorage` 刷新保持。
 
 ---
 
@@ -136,3 +153,25 @@ week01/homework/lingxi/
 | 深度思考模型 reasoning_content 与正文混排 | 分别监听两个字段，推理内容单独渲染为可折叠块 |
 | PDF 文字提取乱序 | 用 pdf.js 逐页 getTextContent，按 transform.y 排序文字块 |
 | 粘贴图片时文件名被写入输入框 | paste 事件先 preventDefault 再处理 items |
+
+---
+
+## 其他希望老师看到的内容
+
+### 超出作业要求的部分
+
+本次作业在完成所有基础要求的基础上，额外实现了 15 项扩展功能。其中几个我认为技术含量较高的点：
+
+1. **IndexedDB + 引用机制**：解决了纯前端存储大文件的经典问题，思路来自数据库的"外键引用"概念，把大对象和索引分离存储。
+
+2. **完整的导出/导入闭环**：不只是导出文字，图片也能完整打包和恢复，相当于实现了一个轻量的"本地云同步"。
+
+3. **多版本回答管理**：参考了 ChatGPT 的翻页设计，每次重新生成不覆盖旧答案，用户可以对比不同版本选择最好的。
+
+4. **深度思考双流渲染**：推理过程和最终回答是两个独立的数据流，需要同时维护两个缓冲区并分别渲染到不同 DOM 节点，这个并发处理逻辑是本次最复杂的部分。
+
+### 学习收获
+
+- 第一次系统使用 `ReadableStream` 处理流式数据，理解了 SSE 协议的工作方式
+- 深入了解了浏览器存储方案的边界：`localStorage`（同步/5MB）vs `IndexedDB`（异步/无限制）
+- 体会到纯 Vanilla JS 在没有框架的情况下管理复杂状态的挑战，也更理解了 Vue/React 解决的问题是什么
