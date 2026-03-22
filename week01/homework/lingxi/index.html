@@ -24,7 +24,7 @@
   <!-- ===== Sidebar ===== -->
   <aside class="sidebar">
     <div class="sidebar-logo">
-      <div class="logo-icon">✨</div>
+      <div class="logo-icon"><img src="assets/LOGO-little.png" alt="灵犀" style="width:26px;height:26px;" /></div>
       <div class="logo-text"><span>灵犀</span> AI</div>
       <button class="sidebar-collapse-btn" id="sidebar-collapse-btn" title="收起侧边栏">‹</button>
     </div>
@@ -33,7 +33,15 @@
       <span>＋</span> 新对话
     </button>
 
-    <div class="sidebar-section-title">最近对话</div>
+    <div class="sidebar-section-title">
+      <span>最近对话</span>
+      <button class="history-manage-btn" id="history-manage-btn">管理</button>
+    </div>
+
+    <div class="history-manage-bar" id="history-manage-bar">
+      <button class="select-all-btn" id="select-all-btn">全选</button>
+      <button class="delete-selected-btn" id="delete-selected-btn">删除选中</button>
+    </div>
 
     <div id="history-list">
       <!-- 动态生成 -->
@@ -113,9 +121,9 @@
     <div class="chat-area" id="chat-area">
       <!-- Welcome Screen -->
       <div class="welcome-screen" id="welcome-screen">
-        <div class="welcome-avatar">🤖</div>
+        <div class="welcome-avatar"><img src="assets/LOGO-little.png" alt="灵犀" style="width:48px;height:48px;" /></div>
         <h1 class="welcome-title">你好，我是灵犀</h1>
-        <p class="welcome-subtitle">你的智能 AI 助手，随时为你解答问题、激发灵感</p>
+        <p class="welcome-subtitle">心有灵犀一点通，你想要的我都有！</p>
         <div class="suggestion-cards">
           <div class="card card-1" data-prompt="帮我写一首关于春天的现代诗">
             <div class="card-icon">✍️</div>
@@ -181,6 +189,22 @@
 
 <!-- Toast -->
 <div class="toast" id="toast"></div>
+
+<!-- 预览层 -->
+<div class="preview-overlay hidden" id="preview-overlay">
+  <button class="preview-close" id="preview-close">✕</button>
+  <!-- 图片预览 -->
+  <div class="preview-img-wrap hidden" id="preview-img-wrap" style="display:none;">
+    <img id="preview-img" src="" alt="预览" />
+  </div>
+  <!-- 文本文件预览 -->
+  <div class="preview-text-wrap hidden" id="preview-text-wrap" style="display:none;">
+    <div class="preview-text-header">
+      <span id="preview-text-filename"></span>
+    </div>
+    <pre id="preview-text-content"></pre>
+  </div>
+</div>
 
 <script src="js/index.js"></script>
 </body>

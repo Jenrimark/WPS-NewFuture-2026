@@ -13,6 +13,44 @@ let currentModel = localStorage.getItem('LINGXI_MODEL') || 'qwen-vl-plus';
 let currentModelVision = localStorage.getItem('LINGXI_MODEL_VISION') !== 'false';
 let currentModelThinking = localStorage.getItem('LINGXI_MODEL_THINKING') === 'true';
 
+// ===== IndexedDB：存储图片 base64（绕过 localStorage 5MB 限制）=====
+let imgDB = null;
+
+function openImgDB() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open('LINGXI_IMAGES', 1);
+    req.onupgradeneeded = e => e.target.result.createObjectStore('images', { keyPath: 'id' });
+    req.onsuccess = e => { imgDB = e.target.result; resolve(); };
+    req.onerror = () => reject(req.error);
+  });
+}
+
+function saveImage(id, base64, mimeType) {
+  return new Promise((resolve) => {
+    if (!imgDB) return resolve();
+    const tx = imgDB.transaction('images', 'readwrite');
+    tx.objectStore('images').put({ id, base64, mimeType });
+    tx.oncomplete = resolve;
+    tx.onerror = resolve; // 失败也不阻塞
+  });
+}
+
+function getImage(id) {
+  return new Promise((resolve) => {
+    if (!imgDB) return resolve(null);
+    const tx = imgDB.transaction('images', 'readonly');
+    const req = tx.objectStore('images').get(id);
+    req.onsuccess = () => resolve(req.result || null);
+    req.onerror = () => resolve(null);
+  });
+}
+
+function deleteImages(ids) {
+  if (!imgDB || !ids?.length) return;
+  const tx = imgDB.transaction('images', 'readwrite');
+  ids.forEach(id => tx.objectStore('images').delete(id));
+}
+
 // ===== DOM 引用 =====
 const chatArea = document.getElementById('chat-area');
 const welcomeScreen = document.getElementById('welcome-screen');
@@ -39,7 +77,8 @@ let chatSessions = [];      // 历史会话列表
 let currentSessionId = null;
 
 // ===== 初始化 =====
-function init() {
+async function init() {
+  await openImgDB();
   applyTheme();
   loadHistory();
   renderHistoryList();
@@ -197,6 +236,24 @@ function bindEvents() {
     });
   });
 
+  // 历史记录管理（多选删除）
+  document.getElementById('history-manage-btn').addEventListener('click', toggleManageMode);
+  document.getElementById('select-all-btn').addEventListener('click', () => {
+    const allIds = chatSessions.slice(0, 50).map(s => s.id);
+    const allSelected = allIds.every(id => selectedIds.has(id));
+    if (allSelected) {
+      selectedIds.clear();
+    } else {
+      allIds.forEach(id => selectedIds.add(id));
+    }
+    renderHistoryList();
+    updateManageBar();
+  });
+  document.getElementById('delete-selected-btn').addEventListener('click', () => {
+    if (selectedIds.size === 0) { showToast('请先选择要删除的会话'); return; }
+    deleteSessions([...selectedIds]);
+  });
+
   // 导出 / 导入
   document.getElementById('export-btn').addEventListener('click', exportSessions);
   document.getElementById('import-btn-trigger').addEventListener('click', () => {
@@ -244,33 +301,36 @@ async function handleSend() {
     return;
   }
 
-  // 隐藏欢迎页，显示消息区
   showChatView();
 
-  // 构建用户消息内容
+  // 把图片存入 IndexedDB，生成 imgRef 列表
+  const imgRefs = [];
+  for (const img of pendingImages) {
+    const imgId = 'img_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7);
+    await saveImage(imgId, img.base64, img.mimeType);
+    imgRefs.push({ imgId, mimeType: img.mimeType });
+  }
+
+  // 构建发给 API 的消息内容（含完整 base64）
   const userContent = buildUserContent(text, pendingImages, pendingFiles);
 
-  // 渲染用户消息气泡
+  // 渲染用户气泡
   appendUserMessage(text, pendingImages, pendingFiles);
 
-  // 清空输入
   chatInput.value = '';
   autoResize(chatInput);
   toggleSendBtn();
   clearImagePreviews();
 
-  // 加入消息历史
-  messages.push({ role: 'user', content: userContent });
+  // messages 里存 imgRefs 而非完整 base64，节省 localStorage 空间
+  messages.push({ role: 'user', content: userContent, _imgRefs: imgRefs.length ? imgRefs : undefined });
 
-  // 渲染 AI loading
   const aiMsgEl = appendAiMessage('');
   const bubbleEl = aiMsgEl.querySelector('.msg-bubble');
   bubbleEl.innerHTML = '<div class="loading-dots"><span></span><span></span><span></span></div>';
 
-  // 开始流式请求
   await streamChat(apiKey, bubbleEl);
 
-  // 保存会话
   saveCurrentSession();
   renderHistoryList();
 }
@@ -396,17 +456,111 @@ async function streamChat(apiKey, bubbleEl) {
     stopBtn.classList.remove('visible');
     toggleSendBtn();
 
-    // 加入 AI 回复到消息历史
     if (fullText) {
       messages.push({ role: 'assistant', content: fullText });
+      // 把这次生成的内容存入气泡的 versions
+      const msgEl = bubbleEl.closest('.message');
+      if (msgEl && msgEl._versions !== undefined) {
+        if (msgEl._versions.length === 0) msgEl._versions.push(fullText);
+        else msgEl._versions[msgEl._currentPage] = fullText; // 重新生成时替换当前页
+        msgEl._updatePager?.();
+      }
     }
-
-    // 更新时间戳
-    const timeEl = bubbleEl.closest('.message')?.querySelector('.msg-time');
-    if (timeEl) timeEl.textContent = formatTime(new Date());
 
     chatArea.scrollTop = chatArea.scrollHeight;
   }
+}
+
+// ===== 重新生成 =====
+async function regenMessage(aiMsgEl) {
+  if (isStreaming) return;
+  const apiKey = localStorage.getItem(API_KEY_NAME);
+  if (!apiKey) { showModal(); return; }
+
+  // 找到这条 AI 消息在 messages[] 里的索引
+  const allAiEls = [...messagesContainer.querySelectorAll('.message.ai')];
+  const aiIdx = allAiEls.indexOf(aiMsgEl);
+  if (aiIdx < 0) return;
+
+  // 截断 messages 到这条 AI 回复之前（重新生成不带上这条）
+  // messages 里 user/assistant 交替，AI 消息对应 messages 里的 assistant
+  // 找到对应的 assistant 消息索引
+  let assistantCount = 0;
+  let msgCutIdx = -1;
+  for (let i = 0; i < messages.length; i++) {
+    if (messages[i].role === 'assistant') {
+      if (assistantCount === aiIdx) { msgCutIdx = i; break; }
+      assistantCount++;
+    }
+  }
+  const contextMessages = msgCutIdx >= 0 ? messages.slice(0, msgCutIdx) : messages.slice(0, -1);
+
+  // 新增一个版本页
+  aiMsgEl._versions.push('');
+  aiMsgEl._currentPage = aiMsgEl._versions.length - 1;
+  aiMsgEl._updatePager?.();
+
+  const bubble = aiMsgEl.querySelector('.msg-bubble');
+  bubble.innerHTML = '<div class="loading-dots"><span></span><span></span><span></span></div>';
+
+  // 临时替换 messages 上下文
+  const savedMessages = messages;
+  messages = contextMessages;
+  await streamChat(apiKey, bubble);
+  messages = savedMessages;
+
+  // 更新 messages 里对应的 assistant 内容（用最新版本）
+  if (msgCutIdx >= 0 && aiMsgEl._versions[aiMsgEl._currentPage]) {
+    messages[msgCutIdx] = { role: 'assistant', content: aiMsgEl._versions[aiMsgEl._currentPage] };
+  }
+
+  saveCurrentSession();
+}
+
+// ===== 删除一问一答 =====
+function deleteQAPair(aiMsgEl) {
+  const allMsgs = [...messagesContainer.querySelectorAll('.message')];
+  const aiIdx = allMsgs.indexOf(aiMsgEl);
+
+  // 找前一条 user 消息
+  const userMsgEl = aiIdx > 0 && allMsgs[aiIdx - 1].classList.contains('user')
+    ? allMsgs[aiIdx - 1] : null;
+
+  // 从 DOM 移除
+  aiMsgEl.remove();
+  userMsgEl?.remove();
+
+  // 从 messages[] 移除对应的 user+assistant
+  const allAiEls = [...messagesContainer.querySelectorAll('.message.ai')];
+  // 重新计算：找到被删的 assistant 在 messages 里的位置
+  let assistantCount = 0;
+  const targetAssistantIdx = allAiEls.length; // 已经从 DOM 删了，所以现在的长度就是被删的索引
+  let removeStart = -1;
+  for (let i = messages.length - 1; i >= 0; i--) {
+    if (messages[i].role === 'assistant') {
+      if (assistantCount === 0) {
+        removeStart = i;
+        break;
+      }
+      assistantCount++;
+    }
+  }
+  // 找到 removeStart 前的 user 消息一并删除
+  if (removeStart > 0 && messages[removeStart - 1].role === 'user') {
+    messages.splice(removeStart - 1, 2);
+  } else if (removeStart >= 0) {
+    messages.splice(removeStart, 1);
+  }
+
+  // 若对话全删完，回到欢迎页
+  if (messagesContainer.querySelectorAll('.message').length === 0) {
+    messages = [];
+    currentSessionId = null;
+    showWelcomeView();
+  }
+
+  saveCurrentSession();
+  showToast('已删除此对话 🗑');
 }
 
 // ===== 停止生成 =====
@@ -428,24 +582,52 @@ function appendUserMessage(text, images, files) {
   const div = document.createElement('div');
   div.className = 'message user';
 
-  let imgHtml = '';
+  // 图片
+  const imgContainer = document.createElement('div');
   (images || []).forEach(img => {
-    imgHtml += `<img class="msg-image" src="data:${img.mimeType};base64,${img.base64}" alt="上传图片" />`;
+    const src = `data:${img.mimeType};base64,${img.base64}`;
+    const imgEl = document.createElement('img');
+    imgEl.className = 'msg-image';
+    imgEl.src = src;
+    imgEl.alt = '上传图片';
+    imgEl.addEventListener('click', () => openImgPreview(src));
+    imgContainer.appendChild(imgEl);
   });
 
-  let fileHtml = '';
+  // 文件标签
+  const fileContainer = document.createElement('div');
   (files || []).forEach(f => {
-    fileHtml += `<div class="msg-file-tag">📄 ${escapeHtml(f.name)}</div>`;
+    const tag = document.createElement('div');
+    tag.className = 'msg-file-tag';
+    tag.textContent = '📄 ' + f.name;
+    tag.addEventListener('click', () => openTextPreview(f.name, f.text));
+    fileContainer.appendChild(tag);
   });
 
-  div.innerHTML = `
-    <div class="msg-avatar">👤</div>
-    <div class="msg-content">
-      ${fileHtml}
-      ${imgHtml}
-      ${text ? `<div class="msg-bubble">${escapeHtml(text)}</div>` : ''}
-      <div class="msg-time">${formatTime(new Date())}</div>
-    </div>`;
+  const contentDiv = document.createElement('div');
+  contentDiv.className = 'msg-content';
+  if (div.classList.contains('user')) contentDiv.style.alignItems = 'flex-end';
+
+  contentDiv.appendChild(fileContainer);
+  contentDiv.appendChild(imgContainer);
+  if (text) {
+    const bubble = document.createElement('div');
+    bubble.className = 'msg-bubble';
+    bubble.textContent = text;
+    contentDiv.appendChild(bubble);
+  }
+  const timeEl = document.createElement('div');
+  timeEl.className = 'msg-time';
+  timeEl.textContent = formatTime(new Date());
+  contentDiv.appendChild(timeEl);
+
+  const avatar = document.createElement('div');
+  avatar.className = 'msg-avatar';
+  avatar.textContent = '👤';
+
+  div.appendChild(avatar);
+  div.appendChild(contentDiv);
+
   messagesContainer.appendChild(div);
   chatArea.scrollTop = chatArea.scrollHeight;
   return div;
@@ -455,12 +637,75 @@ function appendUserMessage(text, images, files) {
 function appendAiMessage(content) {
   const div = document.createElement('div');
   div.className = 'message ai';
+  // versions 存多次重新生成的内容，currentPage 是当前显示的版本索引
+  div._versions = content ? [content] : [];
+  div._currentPage = 0;
+
   div.innerHTML = `
     <div class="msg-avatar">✨</div>
     <div class="msg-content">
       <div class="msg-bubble">${content}</div>
-      <div class="msg-time"></div>
+      <div class="msg-footer">
+        <div class="msg-time">${formatTime(new Date())}</div>
+        <div class="msg-actions">
+          <div class="msg-pager" style="display:none;">
+            <button class="msg-pager-btn prev-btn" disabled>‹</button>
+            <span class="msg-pager-label">1/1</span>
+            <button class="msg-pager-btn next-btn" disabled>›</button>
+          </div>
+          <button class="msg-action-btn copy-btn" title="复制回答">📋 复制</button>
+          <button class="msg-action-btn regen-btn" title="重新生成">🔄 重新生成</button>
+          <button class="msg-action-btn danger del-btn" title="删除此对话">🗑 删除</button>
+        </div>
+      </div>
     </div>`;
+
+  const bubble = div.querySelector('.msg-bubble');
+  const pager = div.querySelector('.msg-pager');
+  const pagerLabel = div.querySelector('.msg-pager-label');
+  const prevBtn = div.querySelector('.prev-btn');
+  const nextBtn = div.querySelector('.next-btn');
+
+  // 翻页
+  function updatePager() {
+    const total = div._versions.length;
+    if (total <= 1) { pager.style.display = 'none'; return; }
+    pager.style.display = 'flex';
+    pagerLabel.textContent = `${div._currentPage + 1}/${total}`;
+    prevBtn.disabled = div._currentPage === 0;
+    nextBtn.disabled = div._currentPage === total - 1;
+  }
+
+  prevBtn.addEventListener('click', () => {
+    if (div._currentPage > 0) {
+      div._currentPage--;
+      bubble.innerHTML = parseMarkdown(div._versions[div._currentPage]);
+      updatePager();
+    }
+  });
+  nextBtn.addEventListener('click', () => {
+    if (div._currentPage < div._versions.length - 1) {
+      div._currentPage++;
+      bubble.innerHTML = parseMarkdown(div._versions[div._currentPage]);
+      updatePager();
+    }
+  });
+
+  // 复制
+  div.querySelector('.copy-btn').addEventListener('click', () => {
+    const text = div._versions[div._currentPage] || bubble.innerText;
+    navigator.clipboard.writeText(text).then(() => showToast('已复制回答 📋'));
+  });
+
+  // 重新生成
+  div.querySelector('.regen-btn').addEventListener('click', () => regenMessage(div));
+
+  // 删除（一问一答）
+  div.querySelector('.del-btn').addEventListener('click', () => deleteQAPair(div));
+
+  // 暴露 updatePager 供外部调用
+  div._updatePager = updatePager;
+
   messagesContainer.appendChild(div);
   chatArea.scrollTop = chatArea.scrollHeight;
   return div;
@@ -572,6 +817,10 @@ function renderImagePreview(base64, mimeType, index) {
   item.innerHTML = `
     <img src="data:${mimeType};base64,${base64}" alt="预览" />
     <button class="preview-remove" onclick="removeImagePreview(${index})">×</button>`;
+  // 点击图片放大预览
+  item.querySelector('img').addEventListener('click', () => {
+    openImgPreview(`data:${mimeType};base64,${base64}`);
+  });
   imagePreviewStrip.appendChild(item);
 }
 
@@ -587,6 +836,11 @@ function renderFilePreview(name, index) {
       <span class="file-name">${name.length > 12 ? name.slice(0, 10) + '…' : name}</span>
     </div>
     <button class="preview-remove" onclick="removeFilePreview(${index})">×</button>`;
+  // 点击文件卡片预览内容
+  item.querySelector('.file-preview-inner').addEventListener('click', () => {
+    const file = pendingFiles[index];
+    if (file) openTextPreview(file.name, file.text);
+  });
   imagePreviewStrip.appendChild(item);
 }
 
@@ -655,17 +909,33 @@ function saveCurrentSession() {
   const firstUserMsg = messages.find(m => m.role === 'user');
   const title = typeof firstUserMsg?.content === 'string'
     ? firstUserMsg.content.slice(0, 20)
-    : '图文对话';
+    : (firstUserMsg?.content?.find?.(c => c.type === 'text')?.text?.slice(0, 20) || '图文对话');
+
+  // 序列化时把 image_url 的 base64 替换为 imgId 引用，避免撑爆 localStorage
+  const serializeMessages = (msgs) => msgs.map(msg => {
+    if (msg.role !== 'user' || !msg._imgRefs?.length) return msg;
+    const refs = msg._imgRefs;
+    let refIdx = 0;
+    const content = Array.isArray(msg.content)
+      ? msg.content.map(c => {
+          if (c.type === 'image_url' && refs[refIdx]) {
+            return { type: '__imgref__', imgId: refs[refIdx++].imgId, mimeType: refs[refIdx - 1]?.mimeType };
+          }
+          return c;
+        })
+      : msg.content;
+    return { role: msg.role, content };
+  });
 
   if (currentSessionId) {
     const idx = chatSessions.findIndex(s => s.id === currentSessionId);
     if (idx !== -1) {
-      chatSessions[idx].messages = [...messages];
+      chatSessions[idx].messages = serializeMessages(messages);
       chatSessions[idx].title = title;
     }
   } else {
     currentSessionId = Date.now().toString();
-    chatSessions.unshift({ id: currentSessionId, title, messages: [...messages] });
+    chatSessions.unshift({ id: currentSessionId, title, messages: serializeMessages(messages) });
     if (chatSessions.length > 20) chatSessions.pop();
   }
 
@@ -679,14 +949,35 @@ function loadHistory() {
   } catch { chatSessions = []; }
 }
 
-// ===== 导出会话 =====
-function exportSessions() {
-  if (chatSessions.length === 0) {
-    showToast('暂无聊天记录可导出');
-    return;
+// ===== 导出会话（含图片）=====
+async function exportSessions() {
+  if (chatSessions.length === 0) { showToast('暂无聊天记录可导出'); return; }
+
+  showToast('正在打包图片数据... ⏳');
+
+  // 收集所有 imgId
+  const allImgIds = new Set();
+  chatSessions.forEach(s => s.messages?.forEach(msg => {
+    if (Array.isArray(msg.content)) {
+      msg.content.forEach(c => { if (c.type === '__imgref__') allImgIds.add(c.imgId); });
+    }
+  }));
+
+  // 从 IndexedDB 取出图片数据
+  const images = {};
+  for (const imgId of allImgIds) {
+    const data = await getImage(imgId);
+    if (data) images[imgId] = { base64: data.base64, mimeType: data.mimeType };
   }
-  const data = JSON.stringify({ version: 1, exportedAt: new Date().toISOString(), sessions: chatSessions }, null, 2);
-  const blob = new Blob([data], { type: 'application/json' });
+
+  const exportData = {
+    version: 2,
+    exportedAt: new Date().toISOString(),
+    sessions: chatSessions,
+    images, // 图片数据随 JSON 一起导出
+  };
+
+  const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
@@ -696,18 +987,23 @@ function exportSessions() {
   showToast(`已导出 ${chatSessions.length} 条会话 📤`);
 }
 
-// ===== 导入会话 =====
+// ===== 导入会话（含图片）=====
 function importSessions(e) {
   const file = e.target.files[0];
   if (!file) return;
   const reader = new FileReader();
-  reader.onload = (ev) => {
+  reader.onload = async (ev) => {
     try {
       const parsed = JSON.parse(ev.target.result);
-      const imported = parsed.sessions || parsed; // 兼容直接是数组的格式
+      const imported = parsed.sessions || parsed;
       if (!Array.isArray(imported)) throw new Error('格式不正确');
 
-      // 合并：以 id 去重，导入的优先
+      // 写回图片到 IndexedDB
+      const images = parsed.images || {};
+      for (const [imgId, data] of Object.entries(images)) {
+        await saveImage(imgId, data.base64, data.mimeType);
+      }
+
       const existingIds = new Set(chatSessions.map(s => s.id));
       const newSessions = imported.filter(s => !existingIds.has(s.id));
       chatSessions = [...newSessions, ...chatSessions];
@@ -717,40 +1013,129 @@ function importSessions(e) {
     } catch {
       showToast('导入失败，请检查文件格式 ❌');
     }
-    e.target.value = ''; // 允许重复导入同一文件
+    e.target.value = '';
   };
   reader.readAsText(file, 'utf-8');
 }
 
+// ===== 历史列表渲染 =====
+let isManageMode = false;
+let selectedIds = new Set();
+
 function renderHistoryList() {
   historyList.innerHTML = '';
-  chatSessions.slice(0, 15).forEach(session => {
+  chatSessions.slice(0, 50).forEach(session => {
     const item = document.createElement('div');
     item.className = 'chat-history-item' + (session.id === currentSessionId ? ' active' : '');
-    item.innerHTML = `<span class="item-icon">💬</span><span>${session.title}</span>`;
-    item.addEventListener('click', () => loadSession(session.id));
+    item.dataset.id = session.id;
+
+    if (isManageMode) {
+      const checked = selectedIds.has(session.id);
+      item.innerHTML = `
+        <input type="checkbox" class="item-checkbox" ${checked ? 'checked' : ''} />
+        <span class="item-title">${session.title}</span>`;
+      item.querySelector('.item-checkbox').addEventListener('change', (e) => {
+        e.stopPropagation();
+        if (e.target.checked) selectedIds.add(session.id);
+        else selectedIds.delete(session.id);
+        updateManageBar();
+      });
+      item.addEventListener('click', (e) => {
+        if (e.target.classList.contains('item-checkbox')) return;
+        const cb = item.querySelector('.item-checkbox');
+        cb.checked = !cb.checked;
+        if (cb.checked) selectedIds.add(session.id);
+        else selectedIds.delete(session.id);
+        updateManageBar();
+      });
+    } else {
+      item.innerHTML = `
+        <span class="item-icon">💬</span>
+        <span class="item-title">${session.title}</span>
+        <button class="item-delete-btn" title="删除">🗑</button>`;
+      item.querySelector('.item-title').addEventListener('click', () => loadSession(session.id));
+      item.querySelector('.item-icon').addEventListener('click', () => loadSession(session.id));
+      item.querySelector('.item-delete-btn').addEventListener('click', (e) => {
+        e.stopPropagation();
+        deleteSessions([session.id]);
+      });
+      item.addEventListener('click', (e) => {
+        if (e.target.classList.contains('item-delete-btn')) return;
+        loadSession(session.id);
+      });
+    }
+
     historyList.appendChild(item);
   });
 }
 
-function loadSession(id) {
+function updateManageBar() {
+  const btn = document.getElementById('delete-selected-btn');
+  btn.textContent = selectedIds.size > 0 ? `删除选中 (${selectedIds.size})` : '删除选中';
+}
+
+function toggleManageMode() {
+  isManageMode = !isManageMode;
+  selectedIds.clear();
+  document.getElementById('history-manage-btn').textContent = isManageMode ? '完成' : '管理';
+  document.getElementById('history-manage-bar').classList.toggle('visible', isManageMode);
+  renderHistoryList();
+}
+
+function deleteSessions(ids) {
+  chatSessions = chatSessions.filter(s => !ids.includes(s.id));
+  localStorage.setItem('LINGXI_SESSIONS', JSON.stringify(chatSessions));
+  // 若删除的是当前会话，回到欢迎页
+  if (ids.includes(currentSessionId)) {
+    messages = [];
+    currentSessionId = null;
+    topbarTitle.textContent = '灵犀 AI 助手';
+    showWelcomeView();
+  }
+  selectedIds.clear();
+  updateManageBar();
+  renderHistoryList();
+  showToast(`已删除 ${ids.length} 条会话`);
+}
+
+async function loadSession(id) {
   const session = chatSessions.find(s => s.id === id);
   if (!session) return;
   currentSessionId = id;
-  messages = [...session.messages];
   topbarTitle.textContent = session.title;
   showChatView();
   messagesContainer.innerHTML = '';
 
-  messages.forEach(msg => {
-    if (msg.role === 'user') {
-      const text = typeof msg.content === 'string' ? msg.content : msg.content.find(c => c.type === 'text')?.text || '';
-      appendUserMessage(text, []);
+  // 恢复 messages：把 __imgref__ 还原为完整 image_url
+  messages = [];
+  for (const msg of session.messages) {
+    if (msg.role === 'user' && Array.isArray(msg.content)) {
+      const restored = [];
+      const imgObjs = []; // 用于渲染气泡
+      for (const c of msg.content) {
+        if (c.type === '__imgref__') {
+          const imgData = await getImage(c.imgId);
+          if (imgData) {
+            const url = `data:${imgData.mimeType};base64,${imgData.base64}`;
+            restored.push({ type: 'image_url', image_url: { url } });
+            imgObjs.push({ base64: imgData.base64, mimeType: imgData.mimeType, name: 'image' });
+          }
+        } else {
+          restored.push(c);
+        }
+      }
+      const text = restored.find(c => c.type === 'text')?.text || '';
+      messages.push({ role: 'user', content: restored });
+      appendUserMessage(text, imgObjs, []);
+    } else if (msg.role === 'user') {
+      messages.push(msg);
+      appendUserMessage(typeof msg.content === 'string' ? msg.content : '', [], []);
     } else if (msg.role === 'assistant') {
+      messages.push(msg);
       const el = appendAiMessage('');
       el.querySelector('.msg-bubble').innerHTML = parseMarkdown(msg.content);
     }
-  });
+  }
 
   renderHistoryList();
   chatArea.scrollTop = chatArea.scrollHeight;
@@ -824,6 +1209,49 @@ function showToast(msg) {
 }
 
 // ===== 复制代码（全局函数，供 HTML onclick 调用）=====
+// ===== 预览层 =====
+const previewOverlay = document.getElementById('preview-overlay');
+const previewImgWrap = document.getElementById('preview-img-wrap');
+const previewImg = document.getElementById('preview-img');
+const previewTextWrap = document.getElementById('preview-text-wrap');
+const previewTextFilename = document.getElementById('preview-text-filename');
+const previewTextContent = document.getElementById('preview-text-content');
+
+function openImgPreview(src) {
+  previewImg.src = src;
+  previewImgWrap.style.display = 'flex';
+  previewImgWrap.style.alignItems = 'center';
+  previewImgWrap.style.justifyContent = 'center';
+  previewTextWrap.style.display = 'none';
+  previewOverlay.style.display = 'flex';
+  previewOverlay.classList.remove('hidden');
+}
+
+function openTextPreview(filename, text) {
+  previewTextFilename.textContent = '📄 ' + filename;
+  previewTextContent.textContent = text;
+  previewTextWrap.style.display = 'flex';
+  previewImgWrap.style.display = 'none';
+  previewOverlay.style.display = 'flex';
+  previewOverlay.classList.remove('hidden');
+}
+
+function closePreview() {
+  previewOverlay.style.display = 'none';
+  previewOverlay.classList.add('hidden');
+  previewImgWrap.style.display = 'none';
+  previewTextWrap.style.display = 'none';
+  previewImg.src = '';
+}
+
+document.getElementById('preview-close').addEventListener('click', closePreview);
+previewOverlay.addEventListener('click', (e) => {
+  if (e.target === previewOverlay) closePreview();
+});
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') closePreview();
+});
+
 window.toggleThinking = function(header) {
   header.classList.toggle('collapsed');
   header.nextElementSibling.classList.toggle('hidden');
@@ -848,6 +1276,12 @@ window.copyCode = function(id) {
 window.removeImagePreview = removeImagePreview;
 window.removeFilePreview = removeFilePreview;
 window.removePreview = removeImagePreview; // 兼容旧引用
+
+// toggleThinking 供 HTML onclick 调用
+window.toggleThinking = function(header) {
+  header.classList.toggle('collapsed');
+  header.nextElementSibling.classList.toggle('hidden');
+};
 
 // ===== 启动 =====
 init();
