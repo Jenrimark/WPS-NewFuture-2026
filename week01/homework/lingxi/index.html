@@ -18,6 +18,7 @@
     pdfjsLib.GlobalWorkerOptions.workerSrc =
       'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
   </script>
+  <script src="https://unpkg.com/lucide@latest"></script>
 </head>
 <body>
 
@@ -30,7 +31,7 @@
     </div>
 
     <button class="new-chat-btn" id="new-chat-btn">
-      <span>＋</span> 新对话
+      <i data-lucide="plus-circle"></i> 新对话
     </button>
 
     <div class="sidebar-section-title">
@@ -48,12 +49,12 @@
     </div>
 
     <div class="sidebar-bottom">
-      <button class="sidebar-btn" id="export-btn">📤 导出聊天记录</button>
-      <button class="sidebar-btn" id="import-btn-trigger">📥 导入聊天记录</button>
+      <button class="sidebar-btn" id="export-btn"><i data-lucide="upload"></i> 导出聊天记录</button>
+      <button class="sidebar-btn" id="import-btn-trigger"><i data-lucide="download"></i> 导入聊天记录</button>
       <input type="file" id="import-file-input" accept=".json" style="display:none;" />
-      <button class="sidebar-btn" id="set-key-btn">🔑 设置 API Key</button>
-      <button class="sidebar-btn" id="theme-btn">🌙 切换主题</button>
-      <button class="sidebar-btn" id="clear-btn">🗑️ 清除对话</button>
+      <button class="sidebar-btn" id="set-key-btn"><i data-lucide="key-round"></i> 设置 API Key</button>
+      <button class="sidebar-btn" id="theme-btn"><i data-lucide="moon" id="theme-icon-sidebar"></i> 切换主题</button>
+      <button class="sidebar-btn" id="clear-btn"><i data-lucide="trash-2"></i> 清除对话</button>
     </div>
   </aside>
 
@@ -62,7 +63,7 @@
     <!-- Top Bar -->
     <div class="topbar">
       <div class="topbar-left">
-        <button class="icon-btn" id="sidebar-collapse-btn" title="收起侧边栏">☰</button>
+        <button class="icon-btn" id="sidebar-collapse-btn" title="收起侧边栏"><i data-lucide="panel-left-close"></i></button>
         <div class="topbar-title" id="topbar-title">灵犀 AI 助手</div>
       </div>
       <div class="topbar-actions">
@@ -111,9 +112,9 @@
             </div>
           </div>
         </div>
-        <button class="icon-btn" id="theme-btn-top" title="切换主题">🌙</button>
-        <button class="icon-btn" id="clear-btn-top" title="清除对话">🗑️</button>
-        <button class="icon-btn" id="set-key-btn-top" title="设置 API Key">🔑</button>
+        <button class="icon-btn" id="theme-btn-top" title="切换主题"><i data-lucide="moon" id="theme-icon-top"></i></button>
+        <button class="icon-btn" id="clear-btn-top" title="清除对话"><i data-lucide="trash-2"></i></button>
+        <button class="icon-btn" id="set-key-btn-top" title="设置 API Key"><i data-lucide="key-round"></i></button>
       </div>
     </div>
 
@@ -126,22 +127,22 @@
         <p class="welcome-subtitle">心有灵犀一点通，你想要的我都有！</p>
         <div class="suggestion-cards">
           <div class="card card-1" data-prompt="帮我写一首关于春天的现代诗">
-            <div class="card-icon">✍️</div>
+            <div class="card-icon"><i data-lucide="pen-line"></i></div>
             <div class="card-title">创意写作</div>
             <div class="card-desc">帮我写一首关于春天的现代诗</div>
           </div>
           <div class="card card-2" data-prompt="用 JavaScript 实现一个防抖函数，并解释原理">
-            <div class="card-icon">💻</div>
+            <div class="card-icon"><i data-lucide="code-2"></i></div>
             <div class="card-title">代码助手</div>
             <div class="card-desc">用 JS 实现防抖函数并解释原理</div>
           </div>
           <div class="card card-3" data-prompt="给我推荐 5 本值得一读的科技类书籍，并简要介绍">
-            <div class="card-icon">📚</div>
+            <div class="card-icon"><i data-lucide="book-open"></i></div>
             <div class="card-title">知识探索</div>
             <div class="card-desc">推荐 5 本值得一读的科技书籍</div>
           </div>
           <div class="card card-4" data-prompt="帮我制定一个 30 天前端学习计划">
-            <div class="card-icon">🎯</div>
+            <div class="card-icon"><i data-lucide="target"></i></div>
             <div class="card-title">学习规划</div>
             <div class="card-desc">制定 30 天前端学习计划</div>
           </div>
@@ -157,18 +158,18 @@
       <div class="input-wrapper">
         <div class="image-preview-strip" id="image-preview-strip"></div>
         <div class="input-row">
-          <textarea id="chat-input" placeholder="发送消息给灵犀... (Enter 发送，Shift+Enter 换行)" rows="1"></textarea>
+          <textarea id="chat-input" placeholder="发送消息给灵犀... (Return 发送，Shift+Return / ⌥Option+Return 换行)" rows="1"></textarea>
           <div class="input-actions">
             <label class="action-btn" title="上传图片/文档" style="cursor:pointer;">
-              📎
+              <i data-lucide="paperclip"></i>
               <input type="file" id="image-upload" accept="image/*,.pdf,.md,.txt,.js,.ts,.py,.java,.css,.html,.csv,.xml,.yaml,.yml,.sh,.sql,.json" multiple style="display:none;" />
             </label>
-            <button class="send-btn" id="send-btn" title="发送">➤</button>
-            <button class="stop-btn" id="stop-btn" title="停止生成">⏹</button>
+            <button class="send-btn" id="send-btn" title="发送"><i data-lucide="send"></i></button>
+            <button class="stop-btn" id="stop-btn" title="停止生成"><i data-lucide="square"></i></button>
           </div>
         </div>
       </div>
-      <div class="input-hint">Enter 发送 · Shift+Enter 换行 · 支持图片上传</div>
+      <div class="input-hint">灵犀AI是人工智能，也会犯错，请主人不用对我太苛刻！</div>
     </div>
   </main>
 </div>
@@ -176,7 +177,7 @@
 <!-- API Key Modal -->
 <div class="modal-overlay hidden" id="modal-overlay">
   <div class="modal">
-    <div class="modal-icon">🔑</div>
+    <div class="modal-icon"><i data-lucide="key-round"></i></div>
     <div class="modal-title">设置 API Key</div>
     <div class="modal-desc">
       请输入你的阿里云百炼 API Key<br/>
@@ -192,7 +193,7 @@
 
 <!-- 预览层 -->
 <div class="preview-overlay hidden" id="preview-overlay">
-  <button class="preview-close" id="preview-close">✕</button>
+  <button class="preview-close" id="preview-close"><i data-lucide="x"></i></button>
   <!-- 图片预览 -->
   <div class="preview-img-wrap hidden" id="preview-img-wrap" style="display:none;">
     <img id="preview-img" src="" alt="预览" />
