@@ -1,0 +1,49 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>菜鸟教程(runoob.com)</title>
+</head>
+<body>
+  <button id="btn">点我截图</button>
+  <div id="screenshot-area"> <!-- 新增：指定截图区域，避免全局body问题 -->
+    <img
+      border="0"
+      src="https://images.weserv.nl/?url=www.runoob.com/images/logo.png"
+      alt="runoob.com"
+      crossorigin="anonymous"
+    />
+  </div>
+
+  <script src="https://cdn.bootcdn.net/ajax/libs/html2canvas/1.4.1/html2canvas.js"></script>
+  <script>
+    const oBtn = document.querySelector("#btn");
+    oBtn.addEventListener("click", async function () {
+      try {
+        // 1. 配置跨域和图片加载策略
+        const canvas = await html2canvas(document.querySelector("#screenshot-area"), {
+          useCORS: true,          // 允许跨域图片
+          allowTaint: true,       // 允许跨域图片污染canvas（关键修复）
+          logging: false,         // 关闭日志，避免干扰
+          scale: window.devicePixelRatio // 保证截图清晰度
+        });
+
+        // 2. 处理canvas转URL（兼容跨域场景）
+        canvas.toBlob(function(blob) {
+          const oA = document.createElement("a");
+          // 用blob URL替代base64，避免跨域canvas的安全限制
+          oA.href = URL.createObjectURL(blob); 
+          oA.download = "报告.png";
+          oA.click();
+          // 释放blob URL资源
+          URL.revokeObjectURL(oA.href);
+        }, 'image/png');
+
+      } catch (e) {
+        console.error("截图失败：", e);
+        alert("截图失败，请检查控制台日志！");
+      }
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,17 @@
+{
+  "compilerOptions": {
+    // 不输出编译文件，交给 Babel 处理
+    "noEmit": true,
+    // 开启严格模式，获得更好的类型检查
+    "strict": true,
+    // 允许 import x from "module" 的方式引入 CommonJS 模块
+    "esModuleInterop": true,
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/*"],
+      "@utils/*": ["src/utils/*"]
+    }
+  },
+  // 指定需要进行类型检查的目录
+  "include": ["src"]
+}

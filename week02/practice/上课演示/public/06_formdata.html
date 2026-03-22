@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Document</title>
+  </head>
+  <body>
+    <!-- 创建普通的html表单 -->
+    <form id="form">
+      <input type="text" name="username" />
+      <input type="password" name="password" />
+      <input type="button" id="btn" value="提交" />
+    </form>
+    <script>
+      const btn = document.getElementById("btn");
+      const form = document.getElementById("form");
+      // 为按钮添加点击事件
+      btn.onclick = function () {
+        // 将普通的html表单转换为表单对象
+        const formData = new FormData();
+        formData.append("username", form.username.value);
+        formData.append("password", form.password.value);
+        // 创建 AJAX 对象
+        const xhr = new XMLHttpRequest();
+        // 对 AJAX 对象进行配置
+        xhr.open("post", "http://localhost:3000/formData");
+        // 发送 AJAX 请求
+        xhr.send(formData);
+        // 监听 xhr 对象下面的 onload 事件
+        xhr.onload = function () {
+          // 对象http状态码进行判断
+          if (xhr.status === 200) {
+            console.log(xhr.responseText);
+          }
+        };
+      };
+    </script>
+  </body>
+</html>

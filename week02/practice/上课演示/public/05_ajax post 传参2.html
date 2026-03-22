@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+  </head>
+  <body>
+    <script>
+      // 1. 创建 AJAX 对象
+      const xhr = new XMLHttpRequest();
+      // 2. 指定请求地址和请求方式
+      xhr.open("post", "http://localhost:3000/post");
+      xhr.setRequestHeader("Content-Type", "application/json");
+      // 3. 发送请求
+      xhr.send(JSON.stringify({ username: "admin", password: "123456" }));
+      // 4. 获取服务器与客户端的响应数据
+      xhr.onload = function () {
+        // 反序列化：把 JSON 格式的字符串转成对象
+        const result = JSON.parse(xhr.responseText);
+        console.log(result);
+      };
+    </script>
+  </body>
+</html>

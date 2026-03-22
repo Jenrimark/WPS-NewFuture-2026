@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <style>
+      @keyframes flash {
+        0% {
+          opacity: 0.4;
+          transform: scale(1.06);
+        }
+        50% {
+          opacity: 1;
+          transform: scale(0.98);
+        }
+        100% {
+          opacity: 1;
+          transform: scale(1);
+        }
+      }
+      .flash {
+        animation: flash 0.6s ease-out;
+      }
+    </style>
+    <title>Document</title>
+  </head>
+  <body>
+    <div class="flex justify-center items-center flex-col gap-2 mt-6">
+      <div
+        id="未读消息"
+        class="w-80 px-3 rounded-md min-h-[34px] leading-[34px] tracking-widest bg-blue-50 border-l-4 border-blue-500"
+      ></div>
+      <div
+        id="订单更新"
+        class="w-80 px-3 rounded-md min-h-[34px] leading-[34px] tracking-widest bg-green-50 border-l-4 border-green-500"
+      ></div>
+      <div
+        id="系统通知"
+        class="w-80 px-3 rounded-md min-h-[34px] leading-[34px] tracking-widest bg-amber-50 border-l-4 border-amber-500"
+      ></div>
+      <button
+        id="closeBtn"
+        class="mt-3 px-6 py-2 text-sm font-medium text-white bg-gradient-to-br from-blue-500 to-blue-700 border-none rounded-lg cursor-pointer shadow-[0_2px_8px_rgba(33,150,243,0.35)] transition-all duration-150 ease-in-out hover:-translate-y-px hover:shadow-[0_4px_12px_rgba(33,150,243,0.45)] active:translate-y-0 active:shadow-[0_2px_6px_rgba(33,150,243,0.3)]"
+      >
+        断开连接
+      </button>
+    </div>
+
+    <script>
+      const eventSource = new EventSource("http://127.0.0.1:3000/api/sse");
+
+      eventSource.onopen = () => console.log("open");
+
+      ["未读消息", "订单更新", "系统通知"].forEach((type) => {
+        eventSource.addEventListener(type, (e) => {
+          const el = document.getElementById(type);
+          el.textContent = e.data;
+          el.classList.remove("flash");
+          void el.offsetWidth;
+          el.classList.add("flash");
+        });
+      });
+
+      eventSource.onerror = (error) => {
+        console.log("连接异常：", error);
+      };
+
+      document.getElementById("closeBtn").addEventListener("click", () => {
+        eventSource.close();
+        console.log("close");
+      });
+    </script>
+  </body>
+</html>
