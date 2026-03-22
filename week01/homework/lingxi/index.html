@@ -11,6 +11,12 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
   <!-- marked.js -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
+  <!-- pdf.js -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script>
+    pdfjsLib.GlobalWorkerOptions.workerSrc =
+      'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  </script>
 </head>
 <body>
 
@@ -20,6 +26,7 @@
     <div class="sidebar-logo">
       <div class="logo-icon">✨</div>
       <div class="logo-text"><span>灵犀</span> AI</div>
+      <button class="sidebar-collapse-btn" id="sidebar-collapse-btn" title="收起侧边栏">‹</button>
     </div>
 
     <button class="new-chat-btn" id="new-chat-btn">
@@ -33,6 +40,9 @@
     </div>
 
     <div class="sidebar-bottom">
+      <button class="sidebar-btn" id="export-btn">📤 导出聊天记录</button>
+      <button class="sidebar-btn" id="import-btn-trigger">📥 导入聊天记录</button>
+      <input type="file" id="import-file-input" accept=".json" style="display:none;" />
       <button class="sidebar-btn" id="set-key-btn">🔑 设置 API Key</button>
       <button class="sidebar-btn" id="theme-btn">🌙 切换主题</button>
       <button class="sidebar-btn" id="clear-btn">🗑️ 清除对话</button>
@@ -43,8 +53,56 @@
   <main class="main">
     <!-- Top Bar -->
     <div class="topbar">
-      <div class="topbar-title" id="topbar-title">灵犀 AI 助手</div>
+      <div class="topbar-left">
+        <button class="icon-btn sidebar-expand-btn hidden" id="sidebar-expand-btn" title="展开侧边栏">☰</button>
+        <div class="topbar-title" id="topbar-title">灵犀 AI 助手</div>
+      </div>
       <div class="topbar-actions">
+        <!-- 模型选择器 -->
+        <div class="model-selector" id="model-selector">
+          <button class="model-selector-btn" id="model-selector-btn">
+            <span class="model-dot"></span>
+            <span id="model-label">qwen-vl-plus</span>
+            <span class="model-arrow">▾</span>
+          </button>
+          <div class="model-dropdown hidden" id="model-dropdown">
+            <div class="model-group-title">通用对话</div>
+            <div class="model-option" data-model="qwen-plus" data-vision="false" data-thinking="false">
+              <span class="model-opt-name">qwen-plus</span>
+              <span class="model-opt-tags"><span class="tag">快速</span></span>
+            </div>
+            <div class="model-option" data-model="qwen-max" data-vision="false" data-thinking="false">
+              <span class="model-opt-name">qwen-max</span>
+              <span class="model-opt-tags"><span class="tag tag-blue">强力</span></span>
+            </div>
+            <div class="model-option" data-model="qwen-turbo" data-vision="false" data-thinking="false">
+              <span class="model-opt-name">qwen-turbo</span>
+              <span class="model-opt-tags"><span class="tag">经济</span></span>
+            </div>
+            <div class="model-group-title">视觉理解（支持图片）</div>
+            <div class="model-option active" data-model="qwen-vl-plus" data-vision="true" data-thinking="false">
+              <span class="model-opt-name">qwen-vl-plus</span>
+              <span class="model-opt-tags"><span class="tag tag-green">图文</span></span>
+            </div>
+            <div class="model-option" data-model="qwen-vl-max" data-vision="true" data-thinking="false">
+              <span class="model-opt-name">qwen-vl-max</span>
+              <span class="model-opt-tags"><span class="tag tag-green">图文</span><span class="tag tag-blue">强力</span></span>
+            </div>
+            <div class="model-group-title">深度思考</div>
+            <div class="model-option" data-model="qwen3-235b-a22b" data-vision="false" data-thinking="true">
+              <span class="model-opt-name">qwen3-235b-a22b</span>
+              <span class="model-opt-tags"><span class="tag tag-purple">思考</span></span>
+            </div>
+            <div class="model-option" data-model="qwen3-32b" data-vision="false" data-thinking="true">
+              <span class="model-opt-name">qwen3-32b</span>
+              <span class="model-opt-tags"><span class="tag tag-purple">思考</span></span>
+            </div>
+            <div class="model-option" data-model="qwq-plus" data-vision="false" data-thinking="true">
+              <span class="model-opt-name">qwq-plus</span>
+              <span class="model-opt-tags"><span class="tag tag-purple">思考</span></span>
+            </div>
+          </div>
+        </div>
         <button class="icon-btn" id="theme-btn-top" title="切换主题">🌙</button>
         <button class="icon-btn" id="clear-btn-top" title="清除对话">🗑️</button>
         <button class="icon-btn" id="set-key-btn-top" title="设置 API Key">🔑</button>
@@ -93,9 +151,9 @@
         <div class="input-row">
           <textarea id="chat-input" placeholder="发送消息给灵犀... (Enter 发送，Shift+Enter 换行)" rows="1"></textarea>
           <div class="input-actions">
-            <label class="action-btn" title="上传图片" style="cursor:pointer;">
-              🖼️
-              <input type="file" id="image-upload" accept="image/*" multiple style="display:none;" />
+            <label class="action-btn" title="上传图片/文档" style="cursor:pointer;">
+              📎
+              <input type="file" id="image-upload" accept="image/*,.pdf,.md,.txt,.js,.ts,.py,.java,.css,.html,.csv,.xml,.yaml,.yml,.sh,.sql,.json" multiple style="display:none;" />
             </label>
             <button class="send-btn" id="send-btn" title="发送">➤</button>
             <button class="stop-btn" id="stop-btn" title="停止生成">⏹</button>
