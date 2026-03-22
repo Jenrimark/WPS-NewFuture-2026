@@ -47,7 +47,7 @@
 | 19 | 聊天记录导入（去重合并，图片写回 IndexedDB） | ✅ |
 | 20 | 图片持久化（IndexedDB，绕过 localStorage 5MB 限制） | ✅ |
 | 21 | 图片 / 文件 Lightbox 全屏预览 | ✅ |
-| 22 | AI 回复操作栏（复制 / 重新生成 / 翻页 / 删除一问一答） | ✅ |
+| 22 | AI 回复操作栏（复制 / 重新生成 / 翻页 / 删除一问一答）+ 多版本持久化（切换会话后翻页器状态保留） | ✅ |
 | 23 | 自定义品牌 Logo + 橙色系配色 | ✅ |
 | 24 | 用户 / AI 自定义头像（me.jpg / LOGO-little.png） | ✅ |
 | 25 | 浏览器标签页 favicon + 自定义标题 | ✅ |
@@ -153,6 +153,7 @@ week01/homework/lingxi/
 | 深度思考模型 reasoning_content 与正文混排 | 分别监听两个字段，推理内容单独渲染为可折叠块 |
 | PDF 文字提取乱序 | 用 pdf.js 逐页 getTextContent，按 transform.y 排序文字块 |
 | 粘贴图片时文件名被写入输入框 | paste 事件先 preventDefault 再处理 items |
+| 切换会话后翻页器消失 | saveCurrentSession 额外序列化 DOM 上的 `_versions[]`，loadSession 恢复时还原并调用 `_updatePager` |
 
 ---
 
