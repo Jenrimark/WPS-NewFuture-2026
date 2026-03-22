@@ -202,14 +202,10 @@ function bindEvents() {
 
   // 侧边栏收起/展开
   const sidebar = document.querySelector('.sidebar');
-  const expandBtn = document.getElementById('sidebar-expand-btn');
-  document.getElementById('sidebar-collapse-btn').addEventListener('click', () => {
-    sidebar.classList.add('collapsed');
-    expandBtn.classList.remove('hidden');
-  });
-  expandBtn.addEventListener('click', () => {
-    sidebar.classList.remove('collapsed');
-    expandBtn.classList.add('hidden');
+  const collapseBtn = document.getElementById('sidebar-collapse-btn');
+  collapseBtn.addEventListener('click', () => {
+    sidebar.classList.toggle('collapsed');
+    collapseBtn.classList.toggle('is-collapsed');
   });
 
   // 模型选择器
@@ -623,7 +619,7 @@ function appendUserMessage(text, images, files) {
 
   const avatar = document.createElement('div');
   avatar.className = 'msg-avatar';
-  avatar.textContent = '👤';
+  avatar.innerHTML = '<img src="assets/me.jpg" alt="我" />';
 
   div.appendChild(avatar);
   div.appendChild(contentDiv);
@@ -642,7 +638,7 @@ function appendAiMessage(content) {
   div._currentPage = 0;
 
   div.innerHTML = `
-    <div class="msg-avatar">✨</div>
+    <div class="msg-avatar"><img src="assets/LOGO-little.png" alt="灵犀" /></div>
     <div class="msg-content">
       <div class="msg-bubble">${content}</div>
       <div class="msg-footer">
