@@ -937,15 +937,20 @@ function saveCurrentSession() {
     return { role: msg.role, content };
   });
 
+  // 收集每条 AI 消息的多版本数据（_versions[]），按 AI 消息顺序存为数组
+  const aiVersions = [...messagesContainer.querySelectorAll('.message.ai')]
+    .map(el => el._versions || []);
+
   if (currentSessionId) {
     const idx = chatSessions.findIndex(s => s.id === currentSessionId);
     if (idx !== -1) {
       chatSessions[idx].messages = serializeMessages(messages);
       chatSessions[idx].title = title;
+      chatSessions[idx].aiVersions = aiVersions;
     }
   } else {
     currentSessionId = Date.now().toString();
-    chatSessions.unshift({ id: currentSessionId, title, messages: serializeMessages(messages) });
+    chatSessions.unshift({ id: currentSessionId, title, messages: serializeMessages(messages), aiVersions });
     if (chatSessions.length > 20) chatSessions.pop();
   }
 
@@ -1119,6 +1124,8 @@ async function loadSession(id) {
 
   // 恢复 messages：把 __imgref__ 还原为完整 image_url
   messages = [];
+  const aiVersionsData = session.aiVersions || [];
+  let aiMsgCount = 0;
   for (const msg of session.messages) {
     if (msg.role === 'user' && Array.isArray(msg.content)) {
       const restored = [];
@@ -1144,9 +1151,19 @@ async function loadSession(id) {
     } else if (msg.role === 'assistant') {
       messages.push(msg);
       const el = appendAiMessage('');
-      el._versions.push(msg.content);
-      el._currentPage = 0;
-      el.querySelector('.msg-bubble').innerHTML = parseMarkdown(msg.content);
+      // 恢复多版本数据
+      const savedVersions = aiVersionsData[aiMsgCount];
+      if (savedVersions && savedVersions.length > 0) {
+        el._versions = [...savedVersions];
+        el._currentPage = savedVersions.length - 1; // 显示最新版本
+        el.querySelector('.msg-bubble').innerHTML = parseMarkdown(el._versions[el._currentPage]);
+      } else {
+        el._versions = [msg.content];
+        el._currentPage = 0;
+        el.querySelector('.msg-bubble').innerHTML = parseMarkdown(msg.content);
+      }
+      el._updatePager?.();
+      aiMsgCount++;
     }
   }
 
