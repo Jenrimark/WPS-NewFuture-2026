@@ -57,39 +57,151 @@
 ## 核心技术实现
 
 ### 1. SSE 流式输出 + 实时 Markdown 渲染
-阿里云百炼返回 `text/event-stream`，用 `fetch` + `response.body.getReader()` 逐 chunk 读取，按 `\n` 分割后提取 `data:` 行解析 JSON。每次收到 `delta.content` 就追加到气泡并调用 `marked.parse()` 重新渲染，实现打字机效果的同时保证 Markdown 结构完整。
+
+阿里云百炼返回 `text/event-stream`，用 `fetch` + `response.body.getReader()` 逐 chunk 读取，按 `\n` 分割后提取 `data:` 行解析 JSON。每次收到 `delta.content` 就追加到缓冲区并调用 `marked.parse()` 重新渲染，打字机效果和 Markdown 结构完整性同时保证。
+
+> 搜索定位：VS Code `Cmd+Shift+F` 搜索 `streamChat`
 
 ```js
-// 核心读取循环
+// js/index.js - streamChat 函数
+const reader = response.body.getReader();
+const decoder = new TextDecoder();
+
 while (true) {
   const { done, value } = await reader.read();
   if (done) break;
-  buffer += decoder.decode(value, { stream: true });
-  const lines = buffer.split('\n');
-  buffer = lines.pop();
+  const chunk = decoder.decode(value, { stream: true });
+  const lines = chunk.split('\n');
   for (const line of lines) {
-    if (!line.startsWith('data:')) continue;
-    const json = JSON.parse(line.slice(5).trim());
-    const delta = json.choices[0].delta;
-    if (delta.content) bubble.innerHTML = parseMarkdown(accumulated += delta.content);
+    if (!line.startsWith('data: ')) continue;
+    const data = line.slice(6).trim();
+    if (data === '[DONE]') break;
+    const json = JSON.parse(data);
+    const delta = json.choices?.[0]?.delta || {};
+    if (delta.content) {
+      fullText += delta.content;
+      bubbleEl.innerHTML = parseMarkdown(fullText); // 实时渲染
+    }
   }
 }
 ```
 
 ### 2. IndexedDB 图片持久化 + 引用机制
-`localStorage` 只有 5MB，直接存 base64 图片必然溢出。方案：图片存 IndexedDB（`lingxi-images` 对象库），key 为 `crypto.randomUUID()` 生成的 uuid，session 的 messages 数组只存 `__imgref__:<uuid>` 字符串。加载会话时异步批量从 DB 取回，导出时把所有引用图片打包进 JSON 的 `images` 字段，导入时先写回 DB 再恢复 session，实现完整的离线备份。
+
+`localStorage` 只有 5MB，直接存 base64 图片必然溢出。图片存 IndexedDB，session 的 messages 只存引用 ID（`__imgref__`）。加载会话时异步取回，导出时打包进 JSON，导入时先写回 DB 再恢复 session。
+
+> 搜索定位：VS Code `Cmd+Shift+F` 搜索 `saveImage`
+
+```js
+// js/index.js - IndexedDB 存取
+function saveImage(id, base64, mimeType) {
+  const tx = imgDB.transaction('images', 'readwrite');
+  tx.objectStore('images').put({ id, base64, mimeType });
+}
+
+// session 里只存引用，不存 base64
+// js/index.js - serializeMessages 函数
+return { type: '__imgref__', imgId: refs[refIdx++].imgId, mimeType: ... }
+```
 
 ### 3. 深度思考模型双流渲染
-深度思考模型（如 qwen3）会同时返回 `delta.reasoning_content`（推理过程）和 `delta.content`（最终回答）。两个字段分别维护独立的字符串缓冲区，推理内容渲染到可折叠的紫色 `<details>` 块，正文内容渲染到主气泡，互不干扰。请求体自动附加 `enable_thinking: true`。
+
+深度思考模型同时返回 `delta.reasoning_content`（推理过程）和 `delta.content`（最终回答），两个字段分别维护独立缓冲区，推理内容渲染到可折叠紫色块，正文渲染到主气泡，互不干扰。请求体自动附加 `enable_thinking: true`。
+
+> 搜索定位：VS Code `Cmd+Shift+F` 搜索 `reasoning_content`
+
+```js
+// js/index.js - streamChat 函数内
+if (delta.reasoning_content) {
+  thinkingText += delta.reasoning_content;
+  thinkingContentEl.textContent = thinkingText; // 渲染到推理块
+}
+if (delta.content) {
+  fullText += delta.content;
+  bubbleEl.innerHTML = parseMarkdown(fullText);  // 渲染到主气泡
+}
+```
 
 ### 4. AbortController 中断生成
-发起请求前创建 `AbortController`，将 `signal` 传入 `fetch`。用户点击停止按钮时调用 `controller.abort()`，`reader.read()` 会抛出 `AbortError`，catch 后正常收尾，已生成的内容保留。
+
+发起请求前创建 `AbortController`，`signal` 传入 `fetch`。点击停止时调用 `abort()`，`reader.read()` 抛出 `AbortError`，catch 后正常收尾，已生成内容保留。
+
+> 搜索定位：VS Code `Cmd+Shift+F` 搜索 `AbortController`
+
+```js
+// js/index.js
+abortController = new AbortController();
+// fetch 请求时传入
+signal: abortController.signal
+
+// 停止按钮
+function stopGeneration() {
+  if (abortController) abortController.abort();
+}
+
+// catch 处理
+if (err.name === 'AbortError') {
+  fullText += '\n\n*[已停止生成]*'; // 保留已生成内容
+}
+```
 
 ### 5. AI 回复多版本管理
-每个 AI 消息 DOM 节点上挂 `_versions[]` 数组和 `_currentPage` 指针。重新生成时 `push` 新版本，翻页器显示 `‹ 1/N ›`，切换页时只替换 `bubble.innerHTML`，各版本原始 Markdown 独立保存，复制时取当前版本。
 
-### 6. CSS 变量主题切换
+每个 AI 消息 DOM 节点上挂 `_versions[]` 数组和 `_currentPage` 指针。重新生成时 `push` 新版本，翻页器显示 `‹ 1/N ›`，切换页只替换 `bubble.innerHTML`，各版本原始 Markdown 独立保存。
+
+> 搜索定位：VS Code `Cmd+Shift+F` 搜索 `_versions`
+
+```js
+// js/index.js - appendAiMessage 函数
+div._versions = [];
+div._currentPage = 0;
+
+function updatePager() {
+  const total = div._versions.length;
+  if (total <= 1) { pager.style.display = 'none'; return; }
+  pager.style.display = 'flex';
+  pagerLabel.textContent = `${div._currentPage + 1}/${total}`;
+}
+```
+
+### 6. PDF 文字提取（pdf.js）
+
+上传 PDF 后用 `pdf.js` 的 `getDocument` 解析，逐页调用 `getTextContent` 提取文字，拼接成带页码标注的纯文本发给 AI。扫描件图片类 PDF 无法提取会给出提示。整个过程纯前端完成。
+
+> 搜索定位：VS Code `Cmd+Shift+F` 搜索 `readPdfFile`
+
+```js
+// js/index.js - readPdfFile 函数
+const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+let fullText = '';
+for (let i = 1; i <= pdf.numPages; i++) {
+  const page = await pdf.getPage(i);
+  const content = await page.getTextContent();
+  const pageText = content.items.map(item => item.str).join(' ');
+  fullText += `[第${i}页]\n${pageText}\n\n`;
+}
+```
+
+### 7. CSS 变量主题切换
+
 所有颜色通过 `:root` CSS 变量定义，深色主题用 `[data-theme="dark"]` 覆盖变量值。切换时只改 `document.documentElement.dataset.theme`，无需重载页面，状态存 `localStorage` 刷新保持。
+
+> 搜索定位：VS Code `Cmd+Shift+F` 搜索 `toggleTheme`
+
+```css
+/* css/index.css */
+:root { --bg-primary: #fff8f3; --accent1: #ea7828; ... }
+[data-theme="dark"] { --bg-primary: #1a1008; ... }
+```
+
+```js
+// js/index.js - toggleTheme 函数
+function toggleTheme() {
+  const isDark = html.getAttribute('data-theme') === 'dark';
+  html.setAttribute('data-theme', isDark ? 'light' : 'dark');
+  localStorage.setItem('LINGXI_THEME', isDark ? 'light' : 'dark');
+}
+```
 
 ---
 
@@ -146,14 +258,114 @@ week01/homework/lingxi/
 
 ## 遇到的问题与解决思路
 
-| 问题 | 解决方案 |
-|------|----------|
-| localStorage 存图片超 5MB 报错 | 改用 IndexedDB 存储 base64，session 只存引用 id |
-| 导出 JSON 导入后图片不显示 | 导出时把 IndexedDB 图片打包进 JSON，导入时先写回 DB |
-| 深度思考模型 reasoning_content 与正文混排 | 分别监听两个字段，推理内容单独渲染为可折叠块 |
-| PDF 文字提取乱序 | 用 pdf.js 逐页 getTextContent，按 transform.y 排序文字块 |
-| 粘贴图片时文件名被写入输入框 | paste 事件先 preventDefault 再处理 items |
-| 切换会话后翻页器消失 | saveCurrentSession 额外序列化 DOM 上的 `_versions[]`，loadSession 恢复时还原并调用 `_updatePager` |
+### 1. localStorage 存图片超 5MB 报错
+
+**现象**：上传图片后切换会话，控制台报 `QuotaExceededError`。
+
+**原因**：base64 图片体积大，localStorage 5MB 上限很快触顶。
+
+**解决**：图片存 IndexedDB，session 只存引用 ID，彻底绕过限制。
+
+> 搜索定位：`Cmd+Shift+F` 搜索 `saveImage`
+
+```js
+// 存图片到 IndexedDB
+saveImage(imgId, img.base64, img.mimeType);
+
+// session 里只存引用
+{ type: '__imgref__', imgId: 'img_xxx', mimeType: 'image/png' }
+
+// 加载会话时异步取回
+const imgData = await getImage(c.imgId);
+```
+
+---
+
+### 2. 切换会话后翻页器消失
+
+**现象**：对某条回复重新生成多次出现翻页器，切换到其他会话再切回来，翻页器不见了。
+
+**原因**：`_versions[]` 挂在 DOM 节点上，切换会话时 `messagesContainer.innerHTML = ''`，DOM 清空，内存数据全丢。
+
+**解决**：保存会话时把所有 AI 消息的 `_versions` 序列化进 session，加载时还原。
+
+> 搜索定位：`Cmd+Shift+F` 搜索 `aiVersions`
+
+```js
+// saveCurrentSession - 序列化存入
+const aiVersions = [...messagesContainer.querySelectorAll('.message.ai')]
+  .map(el => el._versions || []);
+chatSessions[idx].aiVersions = aiVersions;
+
+// loadSession - 恢复时还原
+el._versions = [...savedVersions];
+el._currentPage = savedVersions.length - 1;
+el._updatePager?.(); // 重新渲染翻页器
+```
+
+---
+
+### 3. 用户换行发送后气泡里显示空格
+
+**现象**：输入多行文字发送，气泡里换行符变成了空格。
+
+**原因**：气泡用 `textContent` 赋值，浏览器会把 `\n` 折叠为空格。
+
+**解决**：加一行 CSS，让浏览器原样渲染换行符。
+
+> 搜索定位：`Cmd+Shift+F` 搜索 `pre-wrap`
+
+```css
+/* css/index.css */
+.message.user .msg-bubble {
+  white-space: pre-wrap; /* 保留换行符 */
+}
+```
+
+---
+
+### 4. 导出 JSON 导入后图片不显示
+
+**现象**：导出的 JSON 导入后，含图片的消息图片区域空白。
+
+**原因**：session 里存的是 `__imgref__` 引用 ID，导入时 IndexedDB 里没有对应图片数据。
+
+**解决**：导出时把 IndexedDB 里所有引用图片打包进 JSON 的 `images` 字段，导入时先把图片写回 IndexedDB 再恢复 session。
+
+```js
+// 导出时打包图片
+const images = {};
+for (const imgId of allImgIds) {
+  const data = await getImage(imgId);
+  if (data) images[imgId] = { base64: data.base64, mimeType: data.mimeType };
+}
+
+// 导入时先写回 DB
+for (const [imgId, data] of Object.entries(images)) {
+  await saveImage(imgId, data.base64, data.mimeType);
+}
+```
+
+---
+
+### 5. 粘贴图片时文件名被写入输入框
+
+**现象**：Cmd+V 粘贴图片，图片出现在预览条，但输入框里同时出现了文件名文字。
+
+**原因**：paste 事件默认行为会把剪贴板文字内容写入 textarea。
+
+**解决**：检测到剪贴板有文件时先 `preventDefault()` 阻止默认行为，再手动处理文件。
+
+```js
+// js/index.js - handlePaste 函数
+let hasFile = false;
+for (const item of items) {
+  if (item.kind !== 'file') continue;
+  hasFile = true;
+  // 处理图片...
+}
+if (hasFile) e.preventDefault(); // 阻止文件名写入输入框
+```
 
 ---
 
