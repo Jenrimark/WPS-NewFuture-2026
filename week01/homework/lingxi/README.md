@@ -11,7 +11,7 @@
 | 项目 | 仿 WPS 灵犀风格 AI 对话助手 |
 | 技术栈 | HTML + CSS + Vanilla JS（无框架） |
 | 模型接入 | 阿里云百炼（qwen-vl-plus / qwen-plus / qwen3-235b-a22b 等多模型） |
-| 启动方式 | VS Code Live Server 打开 `lingxi/index.html` |
+| 启动方式 | VS Code Live Server 打开 `index.html` |
 
 ---
 
@@ -224,7 +224,7 @@ function toggleTheme() {
 - 每条 AI 消息维护 `_versions[]` 版本数组，支持重新生成后翻页对比
 - 主题切换通过 CSS 变量 + `data-theme` 属性实现，无需重载页面
 
-![灵犀AI流程图](lingxi/assets/流程图.svg)
+![灵犀AI流程图](assets/流程图.svg)
 
 ---
 
@@ -232,23 +232,25 @@ function toggleTheme() {
 
 ```
 week01/homework/lingxi/
-├── index.html              # 主页面（Live Server 入口）
+├── index.html                          # 主页面（Live Server 入口）
+├── README.md                           # 项目说明文档
+├── 吴汉东_20231003912_灵犀.mp4          # 演示视频
 ├── assets/
-│   ├── LOGO-little.png     # 品牌 Logo（橙色系，透明背景）
-│   ├── 灵犀AI.png           # 侧边栏字体 Logo
-│   ├── me.jpg              # 用户头像
-│   └── 流程图.svg           # 项目流程图
+│   ├── LOGO-little.png                 # 品牌 Logo（橙色系，透明背景）
+│   ├── 灵犀AI.png                       # 侧边栏字体 Logo
+│   ├── me.jpg                          # 用户头像
+│   └── 流程图.svg                       # 项目流程图
 ├── css/
-│   └── index.css           # 全局样式 + 深色/浅色主题 CSS 变量
+│   └── index.css                       # 全局样式 + 深色/浅色主题 CSS 变量
 └── js/
-    └── index.js            # 全部业务逻辑（~1250 行，无框架）
+    └── index.js                        # 全部业务逻辑（~1300 行，无框架）
 ```
 
 ---
 
 ## 使用说明
 
-1. 用 VS Code Live Server 打开 `lingxi/index.html`
+1. 用 VS Code Live Server 打开 `index.html`
 2. 首次使用点击右上角 🔑 图标，输入阿里云百炼 API Key（存入 `LINGXI_API_KEY`）
 3. 顶栏下拉框切换模型（视觉模型支持图片上传，深度思考模型显示推理过程）
 4. 支持 Cmd+V / Ctrl+V 直接粘贴图片到输入框
