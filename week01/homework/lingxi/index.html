@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>灵犀 AI 助手</title>
+  <link rel="stylesheet" href="css/index.css" />
+  <!-- highlight.js -->
+  <link rel="stylesheet" id="hljs-theme"
+    href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <!-- marked.js -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
+</head>
+<body>
+
+<div class="app">
+  <!-- ===== Sidebar ===== -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-icon">✨</div>
+      <div class="logo-text"><span>灵犀</span> AI</div>
+    </div>
+
+    <button class="new-chat-btn" id="new-chat-btn">
+      <span>＋</span> 新对话
+    </button>
+
+    <div class="sidebar-section-title">最近对话</div>
+
+    <div id="history-list">
+      <!-- 动态生成 -->
+    </div>
+
+    <div class="sidebar-bottom">
+      <button class="sidebar-btn" id="set-key-btn">🔑 设置 API Key</button>
+      <button class="sidebar-btn" id="theme-btn">🌙 切换主题</button>
+      <button class="sidebar-btn" id="clear-btn">🗑️ 清除对话</button>
+    </div>
+  </aside>
+
+  <!-- ===== Main ===== -->
+  <main class="main">
+    <!-- Top Bar -->
+    <div class="topbar">
+      <div class="topbar-title" id="topbar-title">灵犀 AI 助手</div>
+      <div class="topbar-actions">
+        <button class="icon-btn" id="theme-btn-top" title="切换主题">🌙</button>
+        <button class="icon-btn" id="clear-btn-top" title="清除对话">🗑️</button>
+        <button class="icon-btn" id="set-key-btn-top" title="设置 API Key">🔑</button>
+      </div>
+    </div>
+
+    <!-- Chat Area -->
+    <div class="chat-area" id="chat-area">
+      <!-- Welcome Screen -->
+      <div class="welcome-screen" id="welcome-screen">
+        <div class="welcome-avatar">🤖</div>
+        <h1 class="welcome-title">你好，我是灵犀</h1>
+        <p class="welcome-subtitle">你的智能 AI 助手，随时为你解答问题、激发灵感</p>
+        <div class="suggestion-cards">
+          <div class="card card-1" data-prompt="帮我写一首关于春天的现代诗">
+            <div class="card-icon">✍️</div>
+            <div class="card-title">创意写作</div>
+            <div class="card-desc">帮我写一首关于春天的现代诗</div>
+          </div>
+          <div class="card card-2" data-prompt="用 JavaScript 实现一个防抖函数，并解释原理">
+            <div class="card-icon">💻</div>
+            <div class="card-title">代码助手</div>
+            <div class="card-desc">用 JS 实现防抖函数并解释原理</div>
+          </div>
+          <div class="card card-3" data-prompt="给我推荐 5 本值得一读的科技类书籍，并简要介绍">
+            <div class="card-icon">📚</div>
+            <div class="card-title">知识探索</div>
+            <div class="card-desc">推荐 5 本值得一读的科技书籍</div>
+          </div>
+          <div class="card card-4" data-prompt="帮我制定一个 30 天前端学习计划">
+            <div class="card-icon">🎯</div>
+            <div class="card-title">学习规划</div>
+            <div class="card-desc">制定 30 天前端学习计划</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Messages -->
+      <div class="messages-container" id="messages-container" style="display:none;"></div>
+    </div>
+
+    <!-- Input Area -->
+    <div class="input-area">
+      <div class="input-wrapper">
+        <div class="image-preview-strip" id="image-preview-strip"></div>
+        <div class="input-row">
+          <textarea id="chat-input" placeholder="发送消息给灵犀... (Enter 发送，Shift+Enter 换行)" rows="1"></textarea>
+          <div class="input-actions">
+            <label class="action-btn" title="上传图片" style="cursor:pointer;">
+              🖼️
+              <input type="file" id="image-upload" accept="image/*" multiple style="display:none;" />
+            </label>
+            <button class="send-btn" id="send-btn" title="发送">➤</button>
+            <button class="stop-btn" id="stop-btn" title="停止生成">⏹</button>
+          </div>
+        </div>
+      </div>
+      <div class="input-hint">Enter 发送 · Shift+Enter 换行 · 支持图片上传</div>
+    </div>
+  </main>
+</div>
+
+<!-- API Key Modal -->
+<div class="modal-overlay hidden" id="modal-overlay">
+  <div class="modal">
+    <div class="modal-icon">🔑</div>
+    <div class="modal-title">设置 API Key</div>
+    <div class="modal-desc">
+      请输入你的阿里云百炼 API Key<br/>
+      Key 仅保存在本地，不会上传到任何服务器
+    </div>
+    <input class="modal-input" id="api-key-input" type="password" placeholder="sk-xxxxxxxxxxxxxxxx" />
+    <button class="modal-save-btn" id="modal-save-btn">保存并继续</button>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script src="js/index.js"></script>
+</body>
+</html>
