@@ -75,7 +75,18 @@ export default function StudentsPage() {
           columns={columns}
           dataSource={list}
           loading={loading}
-          pagination={{ current: page, pageSize, total, showSizeChanger: true, onChange: (p, s) => { setPage(p); setPageSize(s); } }}
+          pagination={{
+            current: page,
+            pageSize,
+            total,
+            showSizeChanger: true,
+            showTotal: (t) => <span className='table-total-count'>共 {t} 人</span>,
+            className: 'clay-data-table-pagination',
+            onChange: (p, s) => {
+              setPage(p);
+              setPageSize(s);
+            },
+          }}
         />
         <Modal open={open} title={editing ? '编辑学生' : '新增学生'} onOk={onSubmit} onCancel={() => setOpen(false)} destroyOnClose>
           <Form form={form} layout='vertical' initialValues={{ status: 'active', course_ids: [] }}>

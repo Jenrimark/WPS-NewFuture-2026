@@ -82,7 +82,18 @@ export default function CoursesPage() {
           columns={columns}
           dataSource={list}
           loading={loading}
-          pagination={{ current: page, pageSize, total, showSizeChanger: true, onChange: (p, s) => { setPage(p); setPageSize(s); } }}
+          pagination={{
+            current: page,
+            pageSize,
+            total,
+            showSizeChanger: true,
+            showTotal: (t) => <span className='table-total-count'>共 {t} 门课程</span>,
+            className: 'clay-data-table-pagination',
+            onChange: (p, s) => {
+              setPage(p);
+              setPageSize(s);
+            },
+          }}
           onChange={(_, __, sorter) => {
             if (!Array.isArray(sorter)) {
               setSortField((sorter.field as string) || '');

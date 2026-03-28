@@ -542,6 +542,64 @@ div.clay-card:not(.clay-nav-bar):hover {
   gap: 16px;
 }
 
+/* 工作台：统计条（外框 + 四格内卡，与作业稿一致） */
+.edu-platform .dashboard-stats-board.ant-card.clay-card .ant-card-body {
+  padding: 20px 18px 22px !important;
+}
+
+.edu-platform .dashboard-stat-tile {
+  text-align: center;
+  background: var(--bg);
+  border: 3px solid var(--text);
+  border-radius: 20px;
+  padding: 18px 12px 16px;
+  height: 100%;
+  box-shadow: 4px 4px 0 var(--text), inset 0 -3px rgba(0, 0, 0, 0.04);
+  box-sizing: border-box;
+}
+
+.edu-platform .dashboard-stat-icon {
+  font-size: 26px;
+  line-height: 1;
+  margin-bottom: 10px;
+}
+
+.edu-platform .dashboard-stat-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+  letter-spacing: 0.02em;
+}
+
+.edu-platform .dashboard-stat-value {
+  font-family: Fredoka, Nunito, 'PingFang SC', sans-serif;
+  font-size: 2.125rem;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.1;
+}
+
+.edu-platform .dashboard-stat-suffix {
+  font-size: 1.35rem;
+  font-weight: 700;
+  margin-left: 2px;
+}
+
+.edu-platform .dashboard-stat-hint {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-top: 8px;
+  line-height: 1.35;
+  font-weight: 600;
+}
+
+.edu-platform .dashboard-stat-hint--placeholder {
+  visibility: hidden;
+  margin-top: 8px;
+  pointer-events: none;
+}
+
 /* 表单控件圆角与描边，贴近设计稿 */
 .edu-platform .ant-input,
 .edu-platform .ant-input-affix-wrapper,
@@ -562,6 +620,29 @@ div.clay-card:not(.clay-nav-bar):hover {
 .edu-platform .ant-table {
   border-radius: 16px;
   overflow: hidden;
+}
+
+/* 列表底部分页：总数文案排在最右侧（antd 默认 total 在左） */
+.edu-platform .clay-data-table-pagination.ant-pagination {
+  width: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px 12px;
+}
+
+.edu-platform .clay-data-table-pagination .ant-pagination-total-text {
+  order: 100;
+  margin-inline: 0 0;
+  margin-inline-start: 4px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.edu-platform .clay-data-table-pagination .table-total-count {
+  color: var(--text-muted);
 }
 
 .edu-platform .ant-pagination .ant-pagination-item {
