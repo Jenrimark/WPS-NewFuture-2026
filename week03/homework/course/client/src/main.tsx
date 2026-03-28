@@ -32,6 +32,28 @@ createRoot(document.getElementById('root')!).render(
           Layout: {
             bodyBg: '#fff9f5',
           },
+          /* Menu 用 CSS-in-JS 后挂载，会盖住 index.css；这里关掉默认蓝条/底色，交给黏土样式 */
+          Menu: {
+            activeBarWidth: 0,
+            activeBarHeight: 0,
+            activeBarBorderWidth: 0,
+            itemBg: 'transparent',
+            itemHoverBg: 'transparent',
+            itemSelectedBg: 'transparent',
+            itemActiveBg: 'transparent',
+            subMenuItemBg: 'transparent',
+            itemColor: '#2d3748',
+            itemHoverColor: '#2d3748',
+            itemSelectedColor: '#2d3748',
+            itemBorderRadius: 16,
+            itemMarginInline: 0,
+            itemMarginBlock: 0,
+            itemPaddingInline: 0,
+            itemHeight: 48,
+            iconSize: 20,
+            collapsedIconSize: 20,
+            iconMarginInlineEnd: 10,
+          },
           Table: {
             headerBg: '#fff9f5',
             headerColor: '#2d3748',

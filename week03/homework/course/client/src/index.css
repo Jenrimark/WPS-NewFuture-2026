@@ -2,6 +2,13 @@
 
 /* 与 UI 设计稿一致的 edu-platform 色板与黏土风 */
 .edu-platform {
+  /* 侧栏展开/收起宽度：改展开宽度只动这里即可（下面用 !important 压住 antd 内联 style，避免「改了没变化」） */
+  --clay-sider-expanded: 220px;
+  --clay-sider-collapsed: 72px;
+  /* 侧栏内容距页面左缘 = 主区（竖线右侧）内容距竖线，一处改处处对齐 */
+  --layout-inline-gutter: 12px;
+  --clay-sider-brand-radius: 18px;
+  --clay-sider-logo-radius: 12px;
   --primary: #fdbcb4;
   --primary-dark: #f5a69d;
   --secondary: #add8e6;
@@ -75,16 +82,26 @@ div.clay-card:not(.clay-nav-bar):hover {
   border-bottom: 2px solid var(--border) !important;
 }
 
+/* 设计稿 HTML：柔和黏土块（无粗描边，仅软阴影 + 内凹） */
 .soft-clay {
   background: var(--bg);
   border-radius: 24px;
   box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08), inset 0 -4px rgba(0, 0, 0, 0.05);
 }
 
+/* 设计稿 HTML：与 .clay-card 同系，用于侧栏内嵌块（无悬停形变，避免误触） */
+.clay-slab {
+  background: var(--bg);
+  border: 3px solid var(--text);
+  border-radius: 24px;
+  box-shadow: 6px 6px 0 var(--text), inset 0 -4px rgba(0, 0, 0, 0.1);
+}
+
+/* 侧栏书本图标底：适度圆角（须 !important，避免被后注入样式盖住） */
 .clay-logo-mark {
   width: 40px;
   height: 40px;
-  border-radius: 12px;
+  border-radius: var(--clay-sider-logo-radius, 12px) !important;
   background: var(--primary);
   border: 3px solid var(--text);
   display: grid;
@@ -94,32 +111,57 @@ div.clay-card:not(.clay-nav-bar):hover {
   flex-shrink: 0;
 }
 
-/* 左侧边栏（黏土风 + 菜单） */
-.clay-sider.ant-layout-sider {
-  background: linear-gradient(180deg, #e8f4fc 0%, #fff5eb 100%) !important;
+.edu-platform .clay-sider-brand .clay-logo-mark {
+  border-radius: var(--clay-sider-logo-radius, 12px) !important;
+}
+
+/* 左侧边栏：奶油底 + 描边（与设计稿页面背景一致，不用新拟态） */
+.edu-platform .clay-sider.ant-layout-sider {
+  background: var(--bg-cream) !important;
   border-right: 3px solid var(--text) !important;
-  box-shadow: 4px 0 20px rgba(45, 55, 72, 0.08);
+  box-shadow: none !important;
 }
 
-.clay-sider .ant-layout-sider-children {
-  display: flex;
-  flex-direction: column;
-  min-height: 100vh;
+/* 强制侧栏占位宽度（覆盖 antd 内联 flex/width，否则有时只改 Sider width 看起来不变） */
+.edu-platform .clay-sider.ant-layout-sider:not(.ant-layout-sider-collapsed) {
+  flex: 0 0 var(--clay-sider-expanded) !important;
+  width: var(--clay-sider-expanded) !important;
+  max-width: var(--clay-sider-expanded) !important;
+  min-width: var(--clay-sider-expanded) !important;
 }
 
-.clay-sider-brand {
+.edu-platform .clay-sider.ant-layout-sider.ant-layout-sider-collapsed {
+  flex: 0 0 var(--clay-sider-collapsed) !important;
+  width: var(--clay-sider-collapsed) !important;
+  max-width: var(--clay-sider-collapsed) !important;
+  min-width: var(--clay-sider-collapsed) !important;
+}
+
+/*
+ * 竖线 = aside border-right。展开宽度改 `--clay-sider-expanded`（与 AppLayout SIDER_EXPANDED_WIDTH 一致）。
+ * 竖线到主区内容的左间距 = 侧栏内容到页面左缘，均由 `--layout-inline-gutter` 控制。
+ */
+.edu-platform .clay-sider > .ant-layout-sider-children {
+  display: flex !important;
+  flex-direction: column !important;
+  height: 100% !important;
+  min-height: 0 !important;
+  padding: 14px 14px 20px var(--layout-inline-gutter) !important;
+  box-sizing: border-box !important;
+}
+
+/* 品牌块：外框与内图标分层圆角（略小于原 24px，避免太方或太圆） */
+.edu-platform .clay-sider-brand {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 20px 16px 16px;
+  padding: 14px 14px 16px;
+  margin: 0 0 14px;
   flex-shrink: 0;
-}
-
-.ant-layout-sider-collapsed .clay-sider-brand {
-  flex-direction: column;
-  justify-content: center;
-  padding: 20px 8px 12px;
-  gap: 0;
+  background: var(--bg);
+  border: 3px solid var(--text);
+  border-radius: var(--clay-sider-brand-radius, 18px) !important;
+  box-shadow: 6px 6px 0 var(--text), inset 0 -4px rgba(0, 0, 0, 0.1);
 }
 
 .clay-sider-title {
@@ -128,34 +170,230 @@ div.clay-card:not(.clay-nav-bar):hover {
   font-weight: 700 !important;
 }
 
-.clay-sider-menu {
+/*
+ * 品牌标题：不用 Typography.Title，避免 antd CSS-in-JS 与全局样式抢优先级导致改 CSS「没变化」。
+ * 单行由 nowrap + 侧栏 width 保证；开发请用 npm run dev，看 dist 需先 npm run build。
+ */
+.edu-platform .clay-sider-brand .clay-sider-title {
+  display: block !important;
+  font-size: 16px !important;
+  line-height: 1.35 !important;
+  white-space: nowrap !important;
+  flex-shrink: 0 !important;
+}
+
+/* 菜单容器：同 .clay-card 视觉；右侧留白配合 slab 6px 硬阴影，避免贴竖线 */
+.edu-platform .clay-sider-panel {
   flex: 1;
+  margin: 0 0 12px;
+  padding: 12px 10px 16px 8px;
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.edu-platform .clay-sider-menu.ant-menu-root {
   border-inline-end: none !important;
   background: transparent !important;
 }
 
-.clay-sider-menu .ant-menu-item {
-  border-radius: 14px !important;
-  margin: 4px 10px !important;
-  width: calc(100% - 20px) !important;
-  font-weight: 600;
+/*
+ * 菜单项 = 设计稿 .btn-secondary（浅蓝底 + 3px 描边 + 4px 硬阴影）
+ * 选中项 = 蜜桃底 + 按下位移（与主按钮按压逻辑一致）
+ * 依赖 main.tsx Menu token 去掉 Ant 默认蓝条
+ */
+.edu-platform .clay-sider-menu.ant-menu-light .ant-menu-item {
+  display: flex !important;
+  align-items: center !important;
+  height: auto !important;
+  min-height: 48px !important;
+  line-height: 1.35 !important;
+  padding: 10px 14px !important;
+  margin: 10px 8px !important;
+  width: calc(100% - 16px) !important;
+  border-radius: 16px !important;
+  border: 3px solid var(--text) !important;
+  color: var(--text) !important;
+  font-weight: 700 !important;
+  background: var(--secondary) !important;
+  box-shadow: 4px 4px 0 var(--text) !important;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease !important;
 }
 
-.clay-sider-menu .ant-menu-item-selected {
-  background: rgba(173, 216, 230, 0.55) !important;
-  color: var(--text) !important;
-  box-shadow: inset 0 0 0 2px #69b1ff;
+.edu-platform .clay-sider-menu .ant-menu-item .anticon {
+  font-size: 18px !important;
 }
 
-.clay-sider-menu .ant-menu-item:hover {
+.edu-platform .clay-sider-menu .ant-menu-item::after {
+  display: none !important;
+  width: 0 !important;
+  border: none !important;
+}
+
+/* 设计稿按钮 hover：translate(2px,2px) + 阴影收小 = 按压感 */
+.edu-platform .clay-sider-menu.ant-menu-light .ant-menu-item:hover {
   color: var(--text) !important;
+  background: var(--secondary-dark) !important;
+  transform: translate(2px, 2px) !important;
+  box-shadow: 2px 2px 0 var(--text) !important;
+}
+
+.edu-platform .clay-sider-menu.ant-menu-light .ant-menu-item-active {
+  background: var(--secondary) !important;
+}
+
+.edu-platform .clay-sider-menu.ant-menu-light .ant-menu-item-selected {
+  color: var(--text) !important;
+  background: var(--primary) !important;
+  transform: translate(2px, 2px) !important;
+  box-shadow: 2px 2px 0 var(--text), inset 0 -4px rgba(0, 0, 0, 0.1) !important;
+}
+
+.edu-platform .clay-sider-menu.ant-menu-light .ant-menu-item-selected:hover {
+  background: var(--primary-dark) !important;
+  color: var(--text) !important;
+}
+
+/* 展开与收起共用：图标列菜单 */
+.edu-platform .clay-sider-menu.ant-menu-inline-collapsed .ant-menu-item {
+  width: calc(100% - 16px) !important;
+  margin: 10px auto !important;
+  padding: 12px 0 !important;
+  justify-content: center !important;
+}
+
+/*
+ * 侧栏收起：避免「外框 slab + 品牌 card + 四颗厚按钮」三层硬边叠在一起
+ * — 外菜单容器改为透明无框；品牌与项改为更轻的 2px 边 + 小一级硬阴影
+ */
+/* 收起态由 React 挂 clay-sider--compact，不依赖 ant 的 collapsed 类名顺序，避免样式不生效 */
+/* 收起宽度仅 72px：右侧勿用大 padding（原 22px 会在图标与 border 之间留出一条奶油色「白边」） */
+.edu-platform .clay-sider--compact > .ant-layout-sider-children {
+  padding: 10px 8px 16px 8px !important;
+  box-sizing: border-box !important;
+}
+
+/* 收起：白底小方块 + 与图标同系圆角 */
+.edu-platform .clay-sider--compact .clay-sider-brand {
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+  align-self: center;
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0;
+  margin: 0 auto 10px;
+  gap: 0;
+  box-sizing: border-box;
+  overflow: hidden;
+  background: #ffffff !important;
+  border: 2px solid var(--text) !important;
+  border-radius: var(--clay-sider-logo-radius, 12px) !important;
+  box-shadow: 3px 3px 0 var(--text), inset 0 -2px rgba(0, 0, 0, 0.06) !important;
+}
+
+.edu-platform .clay-sider-book-icon {
+  display: grid;
+  place-items: center;
+  padding: 2px;
+  font-size: 22px;
+  line-height: 1;
+  color: var(--text);
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  flex-shrink: 0;
+}
+
+.edu-platform .clay-sider--compact .clay-sider-brand .clay-sider-book-icon {
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  font-size: 20px;
+}
+
+.edu-platform .clay-sider--compact .clay-sider-panel.clay-slab {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  outline: none !important;
+  margin: 0 0 6px;
+  padding: 2px 0 6px;
+  overflow-x: hidden;
+  /* 窄侧栏下纵向滚动条占右侧一条，像「白边」；仍可用滚轮/触控滚动 */
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.edu-platform .clay-sider--compact .clay-sider-panel.clay-slab::-webkit-scrollbar {
+  display: none;
+}
+
+/*
+ * antd Menu 收起态写死 width: collapsedWidth（≈ controlHeightLG*2，常 80px），
+ * 与 Sider collapsedWidth 72px 不一致时，右侧会空出一截（奶油底像白边）。
+ */
+.edu-platform .clay-sider--compact .clay-sider-menu.ant-menu-root.ant-menu-inline-collapsed {
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+.edu-platform .clay-sider--compact .clay-sider-menu.ant-menu-inline-collapsed.ant-menu-light .ant-menu-item {
+  width: 44px !important;
+  min-width: 44px !important;
+  min-height: 40px !important;
+  margin: 5px auto !important;
+  padding: 0 !important;
+  border-radius: 12px !important;
+  border-width: 2px !important;
+  box-shadow: 2px 2px 0 var(--text) !important;
+}
+
+.edu-platform .clay-sider--compact .clay-sider-menu .ant-menu-item .anticon {
+  font-size: 17px !important;
+}
+
+.edu-platform .clay-sider--compact .clay-sider-menu.ant-menu-light .ant-menu-item:hover {
+  transform: translate(1px, 1px) !important;
+  box-shadow: 1px 1px 0 var(--text) !important;
+}
+
+.edu-platform .clay-sider--compact .clay-sider-menu.ant-menu-light .ant-menu-item-selected {
+  transform: translate(1px, 1px) !important;
+  box-shadow: 1px 1px 0 var(--text), inset 0 -2px rgba(0, 0, 0, 0.07) !important;
+}
+
+/* 应用壳：整页不滚动，仅主内容区滚动 */
+.edu-platform .clay-app-shell.ant-layout {
+  min-height: 100vh;
+  height: 100vh;
+  max-height: 100vh;
+  overflow: hidden;
+}
+
+.edu-platform .clay-app-shell .clay-sider.ant-layout-sider {
+  height: 100vh;
+  max-height: 100vh;
+  overflow: hidden;
+}
+
+.edu-platform .clay-app-main.ant-layout {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
 /* 顶栏：折叠侧边栏 + 用户 / 分身切换 */
 .clay-header.ant-layout-header {
+  flex-shrink: 0;
   display: flex;
   align-items: center;
-  padding: 0 20px 0 16px;
+  padding: 0 20px 0 var(--layout-inline-gutter, 12px);
   height: 64px;
   line-height: 64px;
   background: var(--bg) !important;
@@ -221,9 +459,12 @@ div.clay-card:not(.clay-nav-bar):hover {
 }
 
 .clay-layout-content.ant-layout-content {
+  flex: 1 1 auto;
+  min-height: 0;
   margin: 0;
-  min-height: calc(100vh - 64px);
-  padding: 24px;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 24px 28px 24px var(--layout-inline-gutter, 12px);
   background: var(--bg-cream);
 }
 
@@ -245,49 +486,53 @@ div.clay-card:not(.clay-nav-bar):hover {
   max-width: 460px;
 }
 
-/* 主按钮：设计稿 CTA 绿 + 描边 + 硬阴影；hover 浮起、active 按下 */
-.melon-btn.ant-btn.ant-btn-primary {
-  background: linear-gradient(180deg, var(--cta) 0%, var(--cta-dark) 100%) !important;
+/*
+ * 主按钮：对齐设计 HTML `.edu-platform .btn-primary`
+ * 实心 CTA、3px 描边、4px 硬阴影；hover 为按压（非上浮）
+ */
+.edu-platform .melon-btn.ant-btn.ant-btn-primary {
+  background: var(--cta) !important;
   border: 3px solid var(--text) !important;
   color: #fff !important;
-  border-radius: 14px !important;
+  border-radius: 16px !important;
   font-weight: 700 !important;
   box-shadow: 4px 4px 0 var(--text) !important;
-  transition: transform 0.15s ease, box-shadow 0.15s ease !important;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease !important;
   text-shadow: none !important;
 }
 
-.melon-btn.ant-btn.ant-btn-primary:hover {
-  background: linear-gradient(180deg, #2dd46b 0%, var(--cta) 100%) !important;
+.edu-platform .melon-btn.ant-btn.ant-btn-primary:hover {
+  background: var(--cta-dark) !important;
   color: #fff !important;
-  transform: translate(-1px, -2px) !important;
-  box-shadow: 5px 6px 0 var(--text) !important;
-}
-
-.melon-btn.ant-btn.ant-btn-primary:active {
   transform: translate(2px, 2px) !important;
   box-shadow: 2px 2px 0 var(--text) !important;
 }
 
-.btn-clay-secondary.ant-btn-default {
+.edu-platform .melon-btn.ant-btn.ant-btn-primary:active {
+  transform: translate(2px, 2px) !important;
+  box-shadow: 2px 2px 0 var(--text) !important;
+}
+
+/* 对齐设计 HTML `.edu-platform .btn-secondary` */
+.edu-platform .btn-clay-secondary.ant-btn-default {
   border: 3px solid var(--text) !important;
-  border-radius: 14px !important;
+  border-radius: 16px !important;
   font-weight: 700 !important;
-  background: var(--bg) !important;
+  background: var(--secondary) !important;
   color: var(--text) !important;
   box-shadow: 4px 4px 0 var(--text) !important;
   transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease !important;
 }
 
-.btn-clay-secondary.ant-btn-default:hover {
-  background: var(--bg-cream) !important;
+.edu-platform .btn-clay-secondary.ant-btn-default:hover {
+  background: var(--secondary-dark) !important;
   color: var(--text) !important;
   border-color: var(--text) !important;
-  transform: translate(-1px, -2px) !important;
-  box-shadow: 5px 6px 0 var(--text) !important;
+  transform: translate(2px, 2px) !important;
+  box-shadow: 2px 2px 0 var(--text) !important;
 }
 
-.btn-clay-secondary.ant-btn-default:active {
+.edu-platform .btn-clay-secondary.ant-btn-default:active {
   transform: translate(2px, 2px) !important;
   box-shadow: 2px 2px 0 var(--text) !important;
 }
