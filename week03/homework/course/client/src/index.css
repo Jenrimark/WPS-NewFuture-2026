@@ -1,0 +1,337 @@
+@import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Nunito:wght@400;600;700&display=swap');
+
+/* 与 UI 设计稿一致的 edu-platform 色板与黏土风 */
+.edu-platform {
+  --primary: #fdbcb4;
+  --primary-dark: #f5a69d;
+  --secondary: #add8e6;
+  --secondary-dark: #8bc4d6;
+  --cta: #22c55e;
+  --cta-dark: #16a34a;
+  --accent-purple: #e6e6fa;
+  --accent-mint: #98ff98;
+  --bg: #ffffff;
+  --bg-cream: #fff9f5;
+  --text: #2d3748;
+  --text-muted: #64748b;
+  --border: #e2e8f0;
+  font-family: Nunito, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  color: var(--text);
+  background: var(--bg-cream);
+}
+
+.edu-platform h1,
+.edu-platform h2,
+.edu-platform h3,
+.edu-platform h4,
+.edu-platform .ant-typography h1,
+.edu-platform .ant-typography h2,
+.edu-platform .ant-typography h3,
+.edu-platform .ant-typography h4,
+.edu-platform .ant-card-head-title {
+  font-family: Fredoka, Nunito, 'PingFang SC', sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+}
+
+/* 设计稿：粗描边 + 右下硬阴影 + 内凹高光；悬停「按压」 */
+div.clay-card {
+  background: var(--bg);
+  border: 3px solid var(--text);
+  border-radius: 24px;
+  box-shadow: 6px 6px 0 var(--text), inset 0 -4px rgba(0, 0, 0, 0.1);
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+div.clay-card:not(.clay-nav-bar):hover {
+  box-shadow: 4px 4px 0 var(--text), inset 0 -4px rgba(0, 0, 0, 0.1);
+  transform: translate(2px, 2px);
+}
+
+.clay-card.ant-card,
+.ant-card.clay-card {
+  background: var(--bg) !important;
+  border: 3px solid var(--text) !important;
+  border-radius: 24px !important;
+  box-shadow: 6px 6px 0 var(--text), inset 0 -4px rgba(0, 0, 0, 0.1) !important;
+  transition: box-shadow 0.2s ease, transform 0.2s ease !important;
+  overflow: hidden;
+}
+
+.clay-card.ant-card:hover,
+.ant-card.clay-card:hover {
+  box-shadow: 4px 4px 0 var(--text), inset 0 -4px rgba(0, 0, 0, 0.1) !important;
+  transform: translate(2px, 2px);
+}
+
+.clay-card.ant-card .ant-card-head,
+.ant-card.clay-card .ant-card-head {
+  border-bottom: 2px solid var(--border) !important;
+}
+
+.soft-clay {
+  background: var(--bg);
+  border-radius: 24px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08), inset 0 -4px rgba(0, 0, 0, 0.05);
+}
+
+.clay-logo-mark {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: var(--primary);
+  border: 3px solid var(--text);
+  display: grid;
+  place-items: center;
+  color: var(--text);
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
+/* 左侧边栏（黏土风 + 菜单） */
+.clay-sider.ant-layout-sider {
+  background: linear-gradient(180deg, #e8f4fc 0%, #fff5eb 100%) !important;
+  border-right: 3px solid var(--text) !important;
+  box-shadow: 4px 0 20px rgba(45, 55, 72, 0.08);
+}
+
+.clay-sider .ant-layout-sider-children {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.clay-sider-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 20px 16px 16px;
+  flex-shrink: 0;
+}
+
+.ant-layout-sider-collapsed .clay-sider-brand {
+  flex-direction: column;
+  justify-content: center;
+  padding: 20px 8px 12px;
+  gap: 0;
+}
+
+.clay-sider-title {
+  margin: 0 !important;
+  color: var(--text) !important;
+  font-weight: 700 !important;
+}
+
+.clay-sider-menu {
+  flex: 1;
+  border-inline-end: none !important;
+  background: transparent !important;
+}
+
+.clay-sider-menu .ant-menu-item {
+  border-radius: 14px !important;
+  margin: 4px 10px !important;
+  width: calc(100% - 20px) !important;
+  font-weight: 600;
+}
+
+.clay-sider-menu .ant-menu-item-selected {
+  background: rgba(173, 216, 230, 0.55) !important;
+  color: var(--text) !important;
+  box-shadow: inset 0 0 0 2px #69b1ff;
+}
+
+.clay-sider-menu .ant-menu-item:hover {
+  color: var(--text) !important;
+}
+
+/* 顶栏：折叠侧边栏 + 用户 / 分身切换 */
+.clay-header.ant-layout-header {
+  display: flex;
+  align-items: center;
+  padding: 0 20px 0 16px;
+  height: 64px;
+  line-height: 64px;
+  background: var(--bg) !important;
+  border-bottom: 2px solid var(--border);
+  box-shadow: 0 2px 12px rgba(45, 55, 72, 0.06);
+}
+
+.clay-header-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border: none;
+  border-radius: 12px;
+  background: var(--bg-cream);
+  color: var(--text);
+  font-size: 18px;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.15s ease;
+}
+
+.clay-header-trigger:hover {
+  background: var(--secondary);
+}
+
+.clay-header-trigger:active {
+  transform: scale(0.96);
+}
+
+.clay-header-spacer {
+  flex: 1;
+}
+
+.clay-header-user {
+  display: inline-flex;
+  align-items: center;
+  border: none;
+  background: none;
+  cursor: pointer;
+  padding: 6px 10px;
+  border-radius: 14px;
+  font-family: inherit;
+  transition: background 0.2s ease;
+}
+
+.clay-header-user:hover {
+  background: var(--bg-cream);
+}
+
+.clay-header-user-name {
+  font-weight: 700;
+  color: var(--text);
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.clay-header-user-caret {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.clay-layout-content.ant-layout-content {
+  margin: 0;
+  min-height: calc(100vh - 64px);
+  padding: 24px;
+  background: var(--bg-cream);
+}
+
+.edu-content {
+  max-width: 72rem;
+  margin: 0 auto;
+}
+
+.login-wrap {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: var(--bg-cream);
+}
+
+.login-card {
+  width: 100%;
+  max-width: 460px;
+}
+
+/* 主按钮：设计稿 CTA 绿 + 描边 + 硬阴影；hover 浮起、active 按下 */
+.melon-btn.ant-btn.ant-btn-primary {
+  background: linear-gradient(180deg, var(--cta) 0%, var(--cta-dark) 100%) !important;
+  border: 3px solid var(--text) !important;
+  color: #fff !important;
+  border-radius: 14px !important;
+  font-weight: 700 !important;
+  box-shadow: 4px 4px 0 var(--text) !important;
+  transition: transform 0.15s ease, box-shadow 0.15s ease !important;
+  text-shadow: none !important;
+}
+
+.melon-btn.ant-btn.ant-btn-primary:hover {
+  background: linear-gradient(180deg, #2dd46b 0%, var(--cta) 100%) !important;
+  color: #fff !important;
+  transform: translate(-1px, -2px) !important;
+  box-shadow: 5px 6px 0 var(--text) !important;
+}
+
+.melon-btn.ant-btn.ant-btn-primary:active {
+  transform: translate(2px, 2px) !important;
+  box-shadow: 2px 2px 0 var(--text) !important;
+}
+
+.btn-clay-secondary.ant-btn-default {
+  border: 3px solid var(--text) !important;
+  border-radius: 14px !important;
+  font-weight: 700 !important;
+  background: var(--bg) !important;
+  color: var(--text) !important;
+  box-shadow: 4px 4px 0 var(--text) !important;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease !important;
+}
+
+.btn-clay-secondary.ant-btn-default:hover {
+  background: var(--bg-cream) !important;
+  color: var(--text) !important;
+  border-color: var(--text) !important;
+  transform: translate(-1px, -2px) !important;
+  box-shadow: 5px 6px 0 var(--text) !important;
+}
+
+.btn-clay-secondary.ant-btn-default:active {
+  transform: translate(2px, 2px) !important;
+  box-shadow: 2px 2px 0 var(--text) !important;
+}
+
+.page-grid {
+  display: grid;
+  gap: 16px;
+}
+
+/* 表单控件圆角与描边，贴近设计稿 */
+.edu-platform .ant-input,
+.edu-platform .ant-input-affix-wrapper,
+.edu-platform .ant-input-number,
+.edu-platform .ant-select .ant-select-selector {
+  border-radius: 14px !important;
+  border-width: 2px !important;
+}
+
+.edu-platform .ant-input-affix-wrapper-focused,
+.edu-platform .ant-input:focus,
+.edu-platform .ant-input-number-focused,
+.edu-platform .ant-select-focused .ant-select-selector {
+  border-color: var(--text) !important;
+  box-shadow: 0 0 0 2px rgba(45, 55, 72, 0.12) !important;
+}
+
+.edu-platform .ant-table {
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.edu-platform .ant-pagination .ant-pagination-item {
+  border-radius: 10px;
+  border-width: 2px;
+}
+
+.markdown-body img {
+  max-width: 100%;
+}
+
+.markdown-body pre {
+  overflow: auto;
+  background: var(--bg-cream);
+  padding: 12px;
+  border-radius: 12px;
+  border: 2px solid var(--border);
+}
