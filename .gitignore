@@ -44,7 +44,7 @@ dist-ssr
 *.local
 
 # Only allow this specific built output to be tracked
-!week03/homework/course/client/dist/
+!week03/homework/course/client/dist
 !week03/homework/course/client/dist/**
 
 # Editor directories and files
