@@ -47,6 +47,9 @@ dist-ssr
 !week03/homework/course/client/dist
 !week03/homework/course/client/dist/**
 
+# Don't upload lockfile (keeps diffs noisy)
+/week03/homework/course/package-lock.json
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
