@@ -474,16 +474,508 @@ div.clay-card:not(.clay-nav-bar):hover {
 }
 
 .login-wrap {
+  height: 100vh;
+  width: 100%;
+  display: block;
+  padding: 0;
+  background: var(--bg-cream);
+}
+
+.course-login-shell {
+  width: 100%;
+  max-width: none;
   min-height: 100vh;
   display: grid;
+  grid-template-columns: 1fr 1fr;
+  align-items: stretch;
+}
+
+.course-login-left {
+  position: relative;
+  overflow: hidden;
+  border-right: 3px solid var(--text);
+  height: 100%;
+}
+
+.course-login-right {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 56px 24px;
+  height: 100%;
+}
+
+.course-login-card {
+  width: 100%;
+  max-width: 460px;
+  animation: courseLoginCardPop 900ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@media (max-width: 992px) {
+  .course-login-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .course-login-left {
+    border-right: none;
+    border-bottom: 3px solid var(--text);
+    min-height: 360px;
+  }
+
+  .course-login-right {
+    padding: 28px 16px;
+  }
+}
+
+.course-login-form .ant-form-item-label > label {
+  font-weight: 800;
+  color: var(--text);
+}
+
+.course-login-form .ant-form-item-has-error .ant-input,
+.course-login-form .ant-form-item-has-error .ant-input-affix-wrapper {
+  border-color: #ef4444 !important;
+  box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.18) !important;
+}
+
+.course-login-form .ant-form-item-explain-error {
+  color: #ef4444 !important;
+}
+
+.course-login-eye-btn {
+  appearance: none;
+  border: none;
+  background: transparent;
+  padding: 0;
+  margin: 0;
+  cursor: pointer;
+  width: 32px;
+  height: 32px;
+  display: grid;
   place-items: center;
-  padding: 24px;
-  background: var(--bg-cream);
+  color: var(--text-muted);
+  border-radius: 10px;
+  transition: background 0.2s ease, transform 0.15s ease, color 0.2s ease;
+}
+
+.course-login-eye-btn:hover {
+  background: rgba(99, 102, 241, 0.12);
+  color: var(--text);
+  transform: translate3d(0, -1px, 0);
+}
+
+.course-login-eye-btn:active {
+  transform: translate3d(0, 1px, 0);
 }
 
 .login-card {
   width: 100%;
   max-width: 460px;
+}
+
+/* Left visual: gradient, grid overlay, seeded particles & parallax */
+.course-login-visual {
+  --mx: 0;
+  --my: 0;
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  position: relative;
+  height: 100%;
+  min-height: 0;
+  color: #ffffff;
+  overflow: hidden;
+  isolation: isolate;
+  background: linear-gradient(135deg, #a9a9b3 0%, #636f7a 100%);
+}
+
+.course-login-visual--bright {
+  background: linear-gradient(135deg, #a1f7d0 0%, #4f7cff 100%);
+}
+
+.course-login-flower {
+  position: absolute;
+  inset: -60px;
+  width: calc(100% + 120px);
+  height: calc(100% + 120px);
+  object-fit: cover;
+  opacity: 0.22;
+  filter: saturate(1.25) blur(12px);
+  transform: translate3d(calc(var(--mx) * 18px), calc(var(--my) * 14px), 0) scale(1.05);
+  z-index: 0;
+  transition: opacity 0.25s var(--ease-out), filter 0.25s var(--ease-out);
+}
+
+.course-login-visual--bright .course-login-flower {
+  opacity: 0.32;
+  filter: saturate(1.35) blur(10px);
+}
+
+.course-login-grid-overlay {
+  position: absolute;
+  inset: 0;
+  background-image: linear-gradient(to right, rgba(255, 255, 255, 0.1) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.1) 1px, transparent 1px);
+  background-size: 28px 28px;
+  opacity: 0.35;
+  mask-image: radial-gradient(circle at 30% 20%, #000 0%, transparent 60%);
+  -webkit-mask-image: radial-gradient(circle at 30% 20%, #000 0%, transparent 60%);
+  transform: translate3d(calc(var(--mx) * -4px), calc(var(--my) * -3px), 0);
+  z-index: 1;
+}
+
+.course-login-blob {
+  position: absolute;
+  border-radius: 999px;
+  filter: blur(36px);
+  opacity: 0.35;
+  z-index: 1;
+  animation-timing-function: var(--ease-out);
+}
+
+.course-login-blob--a {
+  width: 320px;
+  height: 320px;
+  top: -90px;
+  left: -80px;
+  background: rgba(99, 102, 241, 0.35);
+  animation: courseLoginFloatA 8.5s ease-in-out infinite;
+}
+
+.course-login-blob--b {
+  width: 420px;
+  height: 420px;
+  bottom: -170px;
+  right: -180px;
+  background: rgba(16, 185, 129, 0.22);
+  animation: courseLoginFloatB 10.5s ease-in-out infinite;
+}
+
+.course-login-visual--bright .course-login-blob {
+  opacity: 0.5;
+  filter: blur(30px);
+}
+
+.course-login-visual-inner {
+  position: relative;
+  z-index: 4;
+  height: 100%;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 0;
+}
+
+.course-login-platform-title {
+  position: absolute;
+  top: 46px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10;
+  font-family: Fredoka, Nunito, 'PingFang SC', sans-serif;
+  font-weight: 900;
+  font-size: 34px;
+  letter-spacing: 0.02em;
+  color: var(--text);
+  -webkit-text-stroke: 0;
+  text-shadow: none;
+
+  display: inline-block;
+  padding: 8px 22px 7px;
+  border: 3px solid var(--text);
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: 6px 6px 0 var(--text), inset 0 -4px rgba(0, 0, 0, 0.1);
+  line-height: 1;
+  pointer-events: none;
+  user-select: none;
+  white-space: nowrap;
+
+  overflow: visible;
+}
+
+.course-login-characters-wrap {
+  --scale: 1;
+  width: 550px;
+  height: 400px;
+  position: absolute;
+  left: 50%;
+  bottom: 56px;
+  transform-origin: center bottom;
+  transform: translateX(-50%) scale(var(--scale));
+}
+
+@media (max-width: 1200px) {
+  .course-login-characters-wrap {
+    --scale: 0.92;
+  }
+}
+
+@media (max-width: 992px) {
+  .course-login-characters-wrap {
+    --scale: 0.78;
+  }
+}
+
+.course-login-brand-row,
+.course-login-hero {
+  position: relative;
+  z-index: 6;
+}
+
+.course-login-brand-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.course-login-logo-mark {
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  background: var(--primary);
+  border: 3px solid var(--text);
+  display: grid;
+  place-items: center;
+  font-family: Fredoka, Nunito, 'PingFang SC', sans-serif;
+  font-weight: 900;
+  color: var(--text);
+  box-shadow: 6px 6px 0 var(--text), inset 0 -4px rgba(0, 0, 0, 0.08);
+}
+
+.course-login-hero {
+  margin-top: auto;
+}
+
+.course-login-hero-title {
+  font-size: 38px;
+  font-weight: 900;
+  letter-spacing: 0.01em;
+  margin: 0 0 8px;
+}
+
+.course-login-hero-subtitle {
+  margin: 0 0 18px;
+  color: rgba(255, 255, 255, 0.9);
+  font-weight: 700;
+  line-height: 1.6;
+  font-size: 15px;
+}
+
+.course-login-caret {
+  display: inline-block;
+  width: 10px;
+  height: 12px;
+  border-radius: 2px;
+  margin-right: 10px;
+  background: rgba(255, 255, 255, 0.95);
+  vertical-align: -2px;
+  animation: courseLoginCaretBlink 900ms steps(2, end) infinite;
+}
+
+.course-login-hero-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.course-login-badge {
+  padding: 9px 12px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+  font-size: 13px;
+  font-weight: 800;
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.course-login-parallax-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.course-login-particles {
+  position: absolute;
+  inset: 0;
+  transform: translate3d(calc(var(--mx) * -14px), calc(var(--my) * -10px), 0);
+}
+
+.course-login-particle {
+  position: absolute;
+  left: calc(var(--x) * 1%);
+  top: calc(var(--y) * 1%);
+  width: calc(var(--size) * 1px);
+  height: calc(var(--size) * 1px);
+  border-radius: 999px;
+  background: hsla(var(--h), 90%, 70%, 0.75);
+  filter: blur(0.2px);
+  box-shadow: 0 0 30px rgba(56, 189, 248, 0.22);
+  opacity: 0;
+  animation: courseLoginParticleMotion var(--dur) var(--ease-out) infinite;
+  animation-delay: var(--delay);
+}
+
+.course-login-light-flow {
+  position: absolute;
+  inset: -60px;
+  background:
+    radial-gradient(circle at 20% 25%, rgba(255, 255, 255, 0.55), transparent 55%),
+    radial-gradient(circle at 70% 60%, rgba(56, 189, 248, 0.25), transparent 60%),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0));
+  opacity: 0.65;
+  mix-blend-mode: overlay;
+  transform: translate3d(calc(var(--mx) * 10px), calc(var(--my) * 8px), 0);
+  animation: courseLoginLightFlow 9.5s var(--ease-out) infinite;
+}
+
+.course-login-visual-inner .course-login-particles {
+  z-index: 3;
+}
+
+/* Entry animations: cubic-bezier path */
+.course-login-brand-row {
+  opacity: 0;
+  transform: translate3d(0, 18px, 0) scale(0.98);
+}
+
+.course-login-hero {
+  opacity: 0;
+  transform: translate3d(0, 22px, 0) scale(0.99);
+}
+
+.course-login-visual--entered .course-login-brand-row {
+  opacity: 1;
+  animation: courseLoginInBrand 900ms var(--ease-out) both;
+}
+
+.course-login-visual--entered .course-login-hero {
+  opacity: 1;
+  animation: courseLoginInHero 1050ms var(--ease-out) both;
+}
+
+@keyframes courseLoginInBrand {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 18px, 0) scale(0.98);
+    filter: blur(3px);
+  }
+  60% {
+    opacity: 1;
+    filter: blur(0);
+  }
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+    filter: blur(0);
+  }
+}
+
+@keyframes courseLoginInHero {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 22px, 0) scale(0.99);
+    filter: blur(3px);
+  }
+  55% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+    filter: blur(0);
+  }
+}
+
+@keyframes courseLoginCardPop {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 16px, 0) scale(0.98);
+  }
+  70% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+@keyframes courseLoginCaretBlink {
+  0%,
+  100% {
+    opacity: 0.2;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes courseLoginParticleMotion {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 14px, 0) scale(0.7);
+  }
+  12% {
+    opacity: 1;
+  }
+  55% {
+    opacity: 0.75;
+    transform: translate3d(calc(var(--driftX) * 1px), calc(var(--driftY) * 1px), 0) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(calc(var(--driftX) * 2px), calc(var(--driftY) * 2px - 24px), 0) scale(0.6);
+  }
+}
+
+@keyframes courseLoginLightFlow {
+  0% {
+    filter: hue-rotate(0deg);
+    transform: translate3d(calc(var(--mx) * 10px), calc(var(--my) * 8px), 0) scale(1);
+  }
+  45% {
+    filter: hue-rotate(18deg);
+  }
+  100% {
+    filter: hue-rotate(0deg);
+    transform: translate3d(calc(var(--mx) * -10px), calc(var(--my) * -8px), 0) scale(1.02);
+  }
+}
+
+@keyframes courseLoginFloatA {
+  0% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(20px, 26px, 0) scale(1.08);
+  }
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+@keyframes courseLoginFloatB {
+  0% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(-26px, -18px, 0) scale(1.1);
+  }
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .course-login-particle,
+  .course-login-light-flow,
+  .course-login-caret,
+  .course-login-blob {
+    animation: none !important;
+  }
 }
 
 /*
