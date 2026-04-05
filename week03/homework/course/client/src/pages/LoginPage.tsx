@@ -1,8 +1,9 @@
 import { EyeInvisibleOutlined, EyeOutlined, LockOutlined, UserOutlined } from '@ant-design/icons';
-import { App, Button, Card, Form, Input, Typography } from 'antd';
+import { App, Button, Card, Form, Input, Modal, Typography } from 'antd';
 import { useNavigate } from 'react-router-dom';
 import { useState } from 'react';
 import { request } from '../lib/api';
+import { ZOOM_TIP_NEVER_KEY } from '../lib/zoomTipSession';
 import type { UserInfo } from '../lib/types';
 import LoginVisualLeft from '../components/LoginVisualLeft';
 
@@ -20,6 +21,18 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [passwordLength, setPasswordLength] = useState(0);
+  const [zoomTipOpen, setZoomTipOpen] = useState(
+    () => !localStorage.getItem(ZOOM_TIP_NEVER_KEY),
+  );
+
+  /** 仅关闭本次；刷新页面或下次再进入登录页仍会提示 */
+  const dismissZoomTipOnce = () => setZoomTipOpen(false);
+
+  /** 记录到本机，之后不再自动弹出此提示 */
+  const dismissZoomTipForever = () => {
+    localStorage.setItem(ZOOM_TIP_NEVER_KEY, '1');
+    setZoomTipOpen(false);
+  };
 
   // passwordLength 始终跟随输入内容（showPassword 只影响可见性与眼神偷瞄分支）。
 
@@ -40,6 +53,33 @@ export default function LoginPage() {
 
   return (
     <div className='login-wrap'>
+      <Modal
+        title='浏览提示'
+        open={zoomTipOpen}
+        onCancel={dismissZoomTipOnce}
+        footer={
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, flexWrap: 'wrap' }}>
+            <Button type='primary' onClick={dismissZoomTipOnce}>
+              关闭一次
+            </Button>
+            <Button onClick={dismissZoomTipForever}>不再通知</Button>
+          </div>
+        }
+        centered
+        maskClosable
+        destroyOnClose
+      >
+        <p style={{ marginBottom: 12 }}>
+          为获得最佳布局与图表显示效果，建议将浏览器页面缩放调整为 <strong>100%</strong>
+          ，使用观感更佳。
+        </p>
+        <p style={{ marginBottom: 12, color: '#64748b', fontSize: 14 }}>
+          Windows / Linux：按 Ctrl + 0 恢复默认缩放；macOS：按 Command + 0。
+        </p>
+        <p style={{ marginBottom: 0, color: '#64748b', fontSize: 13 }}>
+          您可选择「关闭一次」（下次进入本页仍会提示），或「不再通知」（本浏览器内不再自动弹出）。
+        </p>
+      </Modal>
       <div className='course-login-shell'>
         <div className='course-login-left' aria-hidden='true'>
           <LoginVisualLeft isTyping={isTyping} showPassword={showPassword} passwordLength={passwordLength} />

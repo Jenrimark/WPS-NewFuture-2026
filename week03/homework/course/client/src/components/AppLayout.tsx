@@ -58,69 +58,69 @@ export default function AppLayout() {
 
   return (
     <Layout className="clay-app-shell">
-      <Sider
-        className={collapsed ? 'clay-sider clay-sider--compact' : 'clay-sider'}
-        width={SIDER_EXPANDED_WIDTH}
-        collapsedWidth={72}
-        collapsible
-        collapsed={collapsed}
-        onCollapse={setCollapsed}
-        trigger={null}
-        theme="light"
-      >
-        <div className="clay-sider-brand">
-          <div className={collapsed ? 'clay-sider-book-icon' : 'clay-logo-mark clay-sider-logo'}>
-            <ReadOutlined />
+        <Sider
+          className={collapsed ? 'clay-sider clay-sider--compact' : 'clay-sider'}
+          width={SIDER_EXPANDED_WIDTH}
+          collapsedWidth={72}
+          collapsible
+          collapsed={collapsed}
+          onCollapse={setCollapsed}
+          trigger={null}
+          theme="light"
+        >
+          <div className="clay-sider-brand">
+            <div className={collapsed ? 'clay-sider-book-icon' : 'clay-logo-mark clay-sider-logo'}>
+              <ReadOutlined />
+            </div>
+            {!collapsed ? <span className="clay-sider-title">学习管理平台</span> : null}
           </div>
-          {!collapsed ? <span className="clay-sider-title">学习管理平台</span> : null}
-        </div>
-        <div className="clay-sider-panel clay-slab">
-          <Menu
-            mode="inline"
-            inlineCollapsed={collapsed}
-            selectedKeys={selected}
-            onClick={({ key }) => navigate(key === 'dashboard' ? '/' : `/${key}`)}
-            items={menuItems.map((item) => ({
-              key: item.key,
-              icon: item.icon,
-              label: item.label,
-            }))}
-            className="clay-sider-menu"
-          />
-        </div>
-      </Sider>
-      <Layout className="clay-app-main">
-        <Header className="clay-header">
-          <button
-            type="button"
-            className="clay-header-trigger"
-            aria-label={collapsed ? '展开侧边栏' : '收起侧边栏'}
-            onClick={() => setCollapsed((c) => !c)}
-          >
-            {collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
-          </button>
-          <div className="clay-header-spacer" />
-          <Dropdown menu={{ items: userMenuItems }} placement="bottomRight" trigger={['click']}>
-            <button type="button" className="clay-header-user">
-              <Space size={10}>
-                <Avatar
-                  size={36}
-                  icon={<UserOutlined />}
-                  className="clay-header-avatar"
-                  style={{ background: 'var(--secondary)', color: 'var(--text)' }}
-                />
-                <span className="clay-header-user-name">{displayName}</span>
-                <DownOutlined className="clay-header-user-caret" />
-              </Space>
+          <div className="clay-sider-panel clay-slab">
+            <Menu
+              mode="inline"
+              inlineCollapsed={collapsed}
+              selectedKeys={selected}
+              onClick={({ key }) => navigate(key === 'dashboard' ? '/' : `/${key}`)}
+              items={menuItems.map((item) => ({
+                key: item.key,
+                icon: item.icon,
+                label: item.label,
+              }))}
+              className="clay-sider-menu"
+            />
+          </div>
+        </Sider>
+        <Layout className="clay-app-main">
+          <Header className="clay-header">
+            <button
+              type="button"
+              className="clay-header-trigger"
+              aria-label={collapsed ? '展开侧边栏' : '收起侧边栏'}
+              onClick={() => setCollapsed((c) => !c)}
+            >
+              {collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
             </button>
-          </Dropdown>
-        </Header>
-        <Content className="clay-layout-content">
-          <div className="edu-content">
-            <Outlet />
-          </div>
-        </Content>
+            <div className="clay-header-spacer" />
+            <Dropdown menu={{ items: userMenuItems }} placement="bottomRight" trigger={['click']}>
+              <button type="button" className="clay-header-user">
+                <Space size={10}>
+                  <Avatar
+                    size={36}
+                    icon={<UserOutlined />}
+                    className="clay-header-avatar"
+                    style={{ background: 'var(--secondary)', color: 'var(--text)' }}
+                  />
+                  <span className="clay-header-user-name">{displayName}</span>
+                  <DownOutlined className="clay-header-user-caret" />
+                </Space>
+              </button>
+            </Dropdown>
+          </Header>
+          <Content className="clay-layout-content">
+            <div className="edu-content">
+              <Outlet />
+            </div>
+          </Content>
+        </Layout>
       </Layout>
-    </Layout>
   );
 }
