@@ -43,6 +43,12 @@
   box-sizing: border-box;
 }
 
+/* 避免部分移动浏览器为「可读性」擅自放大文字，导致版面像被「缩放」过 */
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
 body {
   margin: 0;
 }

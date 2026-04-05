@@ -3,7 +3,11 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- 移动端首次进入按 1:1 视口（100%）；minimum-scale 避免被缩到小于初始比例。桌面浏览器地址栏缩放仍由用户/浏览器控制。 -->
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, minimum-scale=1.0"
+    />
     <meta name="description" content="在线学习管理平台" />
     <title>学习管理平台</title>
   </head>
