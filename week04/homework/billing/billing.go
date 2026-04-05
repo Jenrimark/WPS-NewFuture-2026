@@ -16,15 +16,15 @@ const (
 	PriceTier3    = 1.2
 )
 
-// 峰谷时段（按整点小时判断，与题目描述一致）
+// 峰谷时段（按 HH:MM 精确到分钟）
+// 高峰 (8:00, 22:00］：不含 8:00 整点，含 22:00 整点
+// 低谷 (22:00, 次日 8:00］：不含 22:00 整点，含次日 8:00 整点（当日表示为 0:00–8:00 与 22:01–23:59）
 const (
-	PeakStartHour = 8
-	PeakEndHour   = 22 // [8, 22) 为高峰；22 点起至次日 8 点前为低谷
-	PeakFactor    = 1.10
-	ValleyFactor  = 0.80
+	PeakFactor   = 1.10
+	ValleyFactor = 0.80
 )
 
-const BillingRuleVersion = "2026.04-billing-v1"
+const BillingRuleVersion = "2026.04-billing-v2-intervals"
 
 var systemInitTime string
 
@@ -54,22 +54,28 @@ func BaseCostBeforeTOU(kwh float64) float64 {
 	return cost
 }
 
-// IsPeakHour 判断整点是否处于高峰时段 [8, 22)
-func IsPeakHour(hour int) bool {
-	return hour >= PeakStartHour && hour < PeakEndHour
+// minutesSinceMidnight 当日 0:00 起的分钟数，范围 [0, 1439]
+func minutesSinceMidnight(hour, minute int) int {
+	return hour*60 + minute
 }
 
-// TOUMultiplier 返回峰谷调节因子（乘在阶梯总价上）
-func TOUMultiplier(hour int) float64 {
-	if IsPeakHour(hour) {
+// IsPeakTime 是否为高峰 (8:00, 22:00］
+func IsPeakTime(hour, minute int) bool {
+	m := minutesSinceMidnight(hour, minute)
+	return m > 8*60 && m <= 22*60
+}
+
+// TOUMultiplier 返回峰谷调节因子（乘在阶梯总价上）；低谷与高峰按上式互补
+func TOUMultiplier(hour, minute int) float64 {
+	if IsPeakTime(hour, minute) {
 		return PeakFactor
 	}
 	return ValleyFactor
 }
 
 // FinalBill 最终电费：阶梯总价 × 峰谷因子
-func FinalBill(kwh float64, hour int) float64 {
-	return BaseCostBeforeTOU(kwh) * TOUMultiplier(hour)
+func FinalBill(kwh float64, hour, minute int) float64 {
+	return BaseCostBeforeTOU(kwh) * TOUMultiplier(hour, minute)
 }
 
 // ParseClockHHMM 解析 "H:MM" 或 "HH:MM"，返回小时与分钟；小时范围 [0,23]
@@ -122,7 +128,7 @@ func main() {
 		}
 
 		clockLabel := FormatClock(h, m)
-		total := FinalBill(usage, h)
+		total := FinalBill(usage, h, m)
 
 		fmt.Println("--- 账单明细 ---")
 		fmt.Printf("用电总量：%.2f 度\n", usage)
