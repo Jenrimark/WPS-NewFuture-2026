@@ -1,4 +1,4 @@
-import { App, Button, Card, Form, Input, InputNumber, Modal, Popconfirm, Select, Space, Switch, Table, Typography } from 'antd';
+import { App, AutoComplete, Button, Card, Form, Input, InputNumber, Modal, Popconfirm, Select, Space, Switch, Table, Typography } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { useEffect, useState } from 'react';
 import { request } from '../lib/api';
@@ -21,6 +21,7 @@ export default function CoursesPage() {
   const [sortOrder, setSortOrder] = useState('');
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Course | null>(null);
+  const [categorySearch, setCategorySearch] = useState('');
   const [form] = Form.useForm();
 
   const fetchData = async () => {
@@ -34,11 +35,37 @@ export default function CoursesPage() {
   useEffect(() => { fetchData(); }, [page, pageSize, keyword, status, category, sortField, sortOrder]);
   useEffect(() => { request<string[]>('/courses/categories').then(setCategories); }, []);
 
+  const fetchCategories = async () => {
+    const categoryList = await request<string[]>('/courses/categories');
+    setCategories(categoryList);
+  };
+
+  const buildCategoryOptions = (searchText: string) => {
+    const keywordText = searchText.trim().toLowerCase();
+    const matched = categories.filter((item) => item.toLowerCase().includes(keywordText));
+    const exists = categories.some((item) => item.toLowerCase() === keywordText);
+    const options = matched.map((item) => ({ value: item, label: item }));
+
+    if (keywordText && !exists) {
+      options.unshift({
+        value: searchText.trim(),
+        label: `新建分类：${searchText.trim()}`,
+      });
+    }
+
+    return options;
+  };
+
   const onSubmit = async () => {
     const values = await form.validateFields();
+    if (typeof values.category === 'string') {
+      values.category = values.category.trim();
+    }
     if (editing) await request(`/courses/${editing.id}`, { method: 'PUT', data: values });
     else await request('/courses', { method: 'POST', data: values });
     setOpen(false);
+    setCategorySearch('');
+    await fetchCategories();
     message.success('操作成功');
     fetchData();
   };
@@ -58,7 +85,7 @@ export default function CoursesPage() {
       title: '操作',
       render: (_, row) => (
         <Space>
-          <Button size='small' onClick={() => { setEditing(row); form.setFieldsValue(row); setOpen(true); }}>编辑</Button>
+          <Button size='small' onClick={() => { setEditing(row); form.setFieldsValue(row); setCategorySearch(row.category || ''); setOpen(true); }}>编辑</Button>
           <Popconfirm title='确认删除课程吗？' onConfirm={async () => { await request(`/courses/${row.id}`, { method: 'DELETE' }); fetchData(); }}>
             <Button danger size='small'>删除</Button>
           </Popconfirm>
@@ -75,7 +102,7 @@ export default function CoursesPage() {
           <Input.Search placeholder='课程名/讲师' allowClear onSearch={(v) => { setPage(1); setKeyword(v); }} />
           <Select placeholder='状态' allowClear style={{ width: 140 }} onChange={(v) => { setPage(1); setStatus(v || ''); }} options={[{ value: 'published', label: '已发布' }, { value: 'draft', label: '草稿' }]} />
           <Select placeholder='分类' allowClear style={{ width: 160 }} onChange={(v) => { setPage(1); setCategory(v || ''); }} options={categories.map((c) => ({ value: c, label: c }))} />
-          <Button type='primary' className='melon-btn' onClick={() => { setEditing(null); form.resetFields(); setOpen(true); }}>新增课程</Button>
+          <Button type='primary' className='melon-btn' onClick={() => { setEditing(null); form.resetFields(); setCategorySearch(''); setOpen(true); }}>新增课程</Button>
         </Space>
         <Table
           rowKey='id'
@@ -105,7 +132,15 @@ export default function CoursesPage() {
           <Form form={form} layout='vertical' initialValues={{ status: 'draft', lesson_count: 8 }}>
             <Form.Item label='课程名称' name='name' rules={[{ required: true }]}><Input /></Form.Item>
             <Form.Item label='讲师' name='instructor'><Input /></Form.Item>
-            <Form.Item label='分类' name='category'><Input /></Form.Item>
+            <Form.Item label='分类' name='category'>
+              <AutoComplete
+                placeholder='选择或输入分类'
+                options={buildCategoryOptions(categorySearch)}
+                onSearch={setCategorySearch}
+                filterOption={false}
+                onSelect={(value) => setCategorySearch(value)}
+              />
+            </Form.Item>
             <Form.Item label='描述' name='description'><Input.TextArea rows={3} /></Form.Item>
             <Form.Item label='课时' name='lesson_count'><InputNumber min={0} style={{ width: '100%' }} /></Form.Item>
             <Form.Item label='状态' name='status'><Select options={[{ value: 'published', label: '已发布' }, { value: 'draft', label: '草稿' }]} /></Form.Item>
