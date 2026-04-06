@@ -4,7 +4,7 @@ import cors from '@koa/cors';
 import bodyParser from 'koa-bodyparser';
 import { existsSync, readFileSync } from 'fs';
 import { fileURLToPath } from 'url';
-import { dirname, join, extname } from 'path';
+import { dirname, join, extname, normalize } from 'path';
 import { initDatabase } from './database/init.js';
 import authRoutes from './routes/auth.js';
 import dashboardRoutes from './routes/dashboard.js';
@@ -19,6 +19,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const DIST_ROOT = join(__dirname, '../../client/dist');
 const INDEX_HTML = join(DIST_ROOT, 'index.html');
+const DATA_ASSETS_ROOT = normalize(join(__dirname, '../../data/assets'));
 const MIME_TYPES = {
   '.js': 'application/javascript',
   '.css': 'text/css',
@@ -57,6 +58,44 @@ router.use('/api/static', staticRoutes.routes());
 
 app.use(router.routes());
 app.use(router.allowedMethods());
+
+/**
+ * Markdown 相对路径图片在 SPA 路由（如 /summary）下会变成 /summary/assets/xxx，
+ * 这里把任意 …/assets/… 且非 /api 的请求映射到 server/data/assets，避免返回 index.html 导致裂图。
+ */
+app.use(async (ctx, next) => {
+  if (ctx.method !== 'GET' || ctx.path.startsWith('/api')) {
+    return next();
+  }
+  const idx = ctx.path.indexOf('/assets/');
+  if (idx < 0) {
+    return next();
+  }
+  let rel = decodeURIComponent(ctx.path.slice(idx + '/assets/'.length));
+  const q = rel.indexOf('?');
+  if (q >= 0) rel = rel.slice(0, q);
+  if (!rel || rel.includes('..')) {
+    return next();
+  }
+  const filePath = normalize(join(DATA_ASSETS_ROOT, rel));
+  if (!filePath.startsWith(DATA_ASSETS_ROOT)) {
+    return next();
+  }
+  const ext = extname(filePath).toLowerCase();
+  const mime = {
+    '.png': 'image/png',
+    '.jpg': 'image/jpeg',
+    '.jpeg': 'image/jpeg',
+    '.gif': 'image/gif',
+    '.webp': 'image/webp',
+    '.svg': 'image/svg+xml',
+  }[ext];
+  if (!mime || !existsSync(filePath)) {
+    return next();
+  }
+  ctx.type = mime;
+  ctx.body = readFileSync(filePath);
+});
 
 app.use(async (ctx, next) => {
   if (ctx.method !== 'GET' || ctx.path.startsWith('/api')) {

@@ -6,7 +6,7 @@
 
 React 的核心理念是**组件化**。将 UI 拆分为独立的、可复用的组件，每个组件只关注自身的逻辑和渲染。
 
-```jsx
+```js
 function Welcome({ name }) {
   return <h1>Hello, {name}</h1>;
 }
@@ -53,7 +53,7 @@ function App() {
 
 ## 附图
 
-![flower](assets/flower.png)
+![flower](assets/flower.svg)
 
 ---
 

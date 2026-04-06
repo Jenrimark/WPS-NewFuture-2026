@@ -1152,10 +1152,75 @@ div.clay-card:not(.clay-nav-bar):hover {
   max-width: 100%;
 }
 
-.markdown-body pre {
+.markdown-body pre:not(.markdown-code-block pre) {
   overflow: auto;
   background: var(--bg-cream);
   padding: 12px;
   border-radius: 12px;
   border: 2px solid var(--border);
+}
+
+/* :not() 无法匹配「后代」，单独排除高亮代码块内的 pre */
+.markdown-body .markdown-code-block pre {
+  overflow: auto;
+}
+
+/* Markdown 代码块：高亮区域 + 右上角复制（由 Summary 页 SyntaxHighlighter 渲染） */
+.markdown-body .markdown-code-block {
+  position: relative;
+  margin: 1em 0;
+}
+
+.markdown-body .markdown-code-block__copy {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 2;
+  color: var(--text-muted) !important;
+  font-weight: 600;
+}
+
+.markdown-body .markdown-code-block__copy:hover {
+  color: var(--text) !important;
+  background: rgba(0, 0, 0, 0.04) !important;
+}
+
+/* 仅正文里的行内 code，避免误伤 SyntaxHighlighter 的 code（其父级不是 p/li 等） */
+.markdown-body p > code,
+.markdown-body li > code,
+.markdown-body h1 > code,
+.markdown-body h2 > code,
+.markdown-body h3 > code,
+.markdown-body h4 > code,
+.markdown-body h5 > code,
+.markdown-body h6 > code,
+.markdown-body blockquote > code,
+.markdown-body table td > code,
+.markdown-body table th > code {
+  padding: 0.15em 0.4em;
+  font-size: 0.9em;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  background: rgba(150, 150, 150, 0.12);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+
+/* 代码块内：去掉可能被全局样式叠上的边框，只保留彩色文字 */
+.markdown-body .markdown-code-block pre,
+.markdown-body .markdown-code-block code {
+  border: none !important;
+  box-shadow: none !important;
+  outline: none !important;
+}
+
+.markdown-body .markdown-code-block .token {
+  background: transparent !important;
+  box-shadow: none !important;
+  outline: none !important;
+}
+
+/* 与页面奶油底一致，压住 oneLight 默认灰底 */
+.markdown-body .markdown-code-block pre[class*='language-'],
+.markdown-body .markdown-code-block code[class*='language-'] {
+  background: #fff9f5 !important;
 }
