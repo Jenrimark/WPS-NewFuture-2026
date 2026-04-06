@@ -182,6 +182,22 @@ router.delete('/:id', authenticateToken, async (ctx) => {
   success(ctx, null, '删除成功');
 });
 
+router.patch('/:id/status', authenticateToken, async (ctx) => {
+  const studentId = Number(ctx.params.id);
+  const existing = db.prepare('SELECT * FROM students WHERE id = ?').get(studentId);
+  if (!existing) {
+    return fail(ctx, 404, '学生不存在');
+  }
+
+  const newStatus = existing.status === 'active' ? 'inactive' : 'active';
+  db.prepare('UPDATE students SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?')
+    .run(newStatus, studentId);
+
+  const student = db.prepare('SELECT * FROM students WHERE id = ?').get(studentId);
+  student.course_ids = JSON.parse(student.course_ids || '[]');
+  success(ctx, student);
+});
+
 function updateCourseCounts() {
   const courses = db.prepare('SELECT id FROM courses').all();
   const students = db.prepare('SELECT course_ids FROM students').all();
