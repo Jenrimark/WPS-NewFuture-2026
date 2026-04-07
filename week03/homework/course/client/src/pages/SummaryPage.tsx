@@ -1,4 +1,4 @@
-import { App, Button, Card, Input, Space, Typography } from 'antd';
+import { App, Button, Card, Input, Space, Tabs, Typography } from 'antd';
 import { useEffect, useState } from 'react';
 import type { Components } from 'react-markdown';
 import ReactMarkdown from 'react-markdown';
@@ -96,11 +96,33 @@ export default function SummaryPage() {
       </div>
       <Card className='clay-card markdown-body'>
         {editing ? (
-          <Input.TextArea
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            autoSize={{ minRows: 16, maxRows: 30 }}
-            placeholder='请输入 Markdown 学习总结'
+          <Tabs
+            defaultActiveKey='edit'
+            items={[
+              {
+                key: 'edit',
+                label: '编辑',
+                children: (
+                  <Input.TextArea
+                    value={draft}
+                    onChange={(e) => setDraft(e.target.value)}
+                    autoSize={{ minRows: 16, maxRows: 30 }}
+                    placeholder='请输入 Markdown 学习总结'
+                  />
+                ),
+              },
+              {
+                key: 'preview',
+                label: '预览',
+                children: (
+                  <div className='markdown-body' style={{ minHeight: 200 }}>
+                    <ReactMarkdown urlTransform={markdownUrlTransform} components={markdownComponents}>
+                      {draft}
+                    </ReactMarkdown>
+                  </div>
+                ),
+              },
+            ]}
           />
         ) : (
           <ReactMarkdown urlTransform={markdownUrlTransform} components={markdownComponents}>

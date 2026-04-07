@@ -136,7 +136,7 @@ export default function LoginVisualLeft({ isTyping, showPassword, passwordLength
       aria-hidden="true"
     >
       {/* Decorative asset layer. */}
-      <img className="course-login-flower" src="/api/static/assets/flower.png" alt="" />
+      <img className="course-login-flower" src="/api/static/assets/flower.svg" alt="" />
 
       <div className="course-login-grid-overlay" />
 
