@@ -22,6 +22,15 @@ const (
 const (
 	PeakFactor   = 1.10
 	ValleyFactor = 0.80
+
+	MinutesPerHour = 60
+
+	// 高峰在当日时间轴上的边界（分钟，自 0:00 起算）
+	PeakStartHourExclusive = 8  // 8:00 整点不属于高峰（左开）
+	PeakEndHourInclusive   = 22 // 22:00 整点仍属高峰（右闭）
+
+	PeakRangeStartExclusiveMin = PeakStartHourExclusive * MinutesPerHour // 严格大于该分钟数才进入高峰
+	PeakRangeEndInclusiveMin   = PeakEndHourInclusive * MinutesPerHour     // 小于等于该分钟数仍为高峰
 )
 
 const BillingRuleVersion = "2026.04-billing-v2-intervals"
@@ -56,13 +65,13 @@ func BaseCostBeforeTOU(kwh float64) float64 {
 
 // minutesSinceMidnight 当日 0:00 起的分钟数，范围 [0, 1439]
 func minutesSinceMidnight(hour, minute int) int {
-	return hour*60 + minute
+	return hour*MinutesPerHour + minute
 }
 
 // IsPeakTime 是否为高峰 (8:00, 22:00］
 func IsPeakTime(hour, minute int) bool {
 	m := minutesSinceMidnight(hour, minute)
-	return m > 8*60 && m <= 22*60
+	return m > PeakRangeStartExclusiveMin && m <= PeakRangeEndInclusiveMin
 }
 
 // TOUMultiplier 返回峰谷调节因子（乘在阶梯总价上）；低谷与高峰按上式互补
