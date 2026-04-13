@@ -1,0 +1,33 @@
+=== Service Health Probe Report ===
+GeneratedAt: 2026-04-13T15:50:16+08:00
+Total Targets: 9
+Success: 0
+Fail: 9
+Success Rate: 0.00%
+Average Latency: 1.335s
+
+Latency Distribution:
+- <100ms: 0
+- 100ms-500ms: 0
+- 500ms-1s: 0
+- 1s-3s: 8
+- >3s: 1
+
+Slowest Target:
+- Name: 无效服务
+- Address: https://not-exist-domain-123.com
+- Latency: 3.003s
+- Success: false
+
+Target Details:
+- [B站 API] protocol=HTTP success=false attempts=1 latency=1.001s status= expectation=200 OK err=Get "https://api.bilibili.com/x/web-interface/nav": context deadline exceeded
+- [GitHub] protocol=HTTP success=false attempts=1 latency=1.001s status= expectation=200 OK err=Get "https://github.com": context deadline exceeded
+- [MySQL服务] protocol=TCP success=false attempts=1 latency=1.001s status=Fail expectation=Connected err=dial tcp: lookup localhost: i/o timeout
+- [Raw 文本文件] protocol=HTTP success=false attempts=1 latency=1.001s status= expectation=Contains "Go" err=Get "https://raw.githubusercontent.com/gfwlist/gfwlist/master/gfwlist.txt": context deadline exceeded
+- [慢速响应模拟] protocol=HTTP success=false attempts=2 latency=2.002s status= expectation=200 OK err=Get "https://httpbin.org/delay/5": context deadline exceeded
+- [无效服务] protocol=HTTP success=false attempts=3 latency=3.003s status= expectation=Fail err=Get "https://not-exist-domain-123.com": context deadline exceeded
+- [本身SSH] protocol=TCP success=false attempts=1 latency=1.001s status=Fail expectation=Connected err=dial tcp: lookup localhost: i/o timeout
+- [百度搜索] protocol=HTTP success=false attempts=1 latency=1.001s status= expectation=200 OK err=Get "https://www.baidu.com": context deadline exceeded
+- [网易首页] protocol=HTTP success=false attempts=1 latency=1.001s status= expectation=200 OK err=Get "https://www.163.com": context deadline exceeded
+
+report saved to /Users/Jenrimark/Documents/金山WPS/wuhandong/week05/homework/monitor/reports/monitor-log-20260413155016.log

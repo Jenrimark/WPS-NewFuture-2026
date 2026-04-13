@@ -1,0 +1,51 @@
+{
+  "targets": [
+    {
+      "name": "百度搜索",
+      "address": "https://www.baidu.com",
+      "expectation": "200 OK"
+    },
+    {
+      "name": "网易首页",
+      "address": "https://www.163.com",
+      "expectation": "200 OK"
+    },
+    {
+      "name": "GitHub",
+      "address": "https://github.com",
+      "expectation": "200 OK"
+    },
+    {
+      "name": "MySQL服务",
+      "address": "localhost:3306",
+      "expectation": "Connected"
+    },
+    {
+      "name": "本身SSH",
+      "address": "localhost:22",
+      "expectation": "Connected"
+    },
+    {
+      "name": "无效服务",
+      "address": "https://not-exist-domain-123.com",
+      "expectation": "Fail",
+      "retry_count": 2
+    },
+    {
+      "name": "B站 API",
+      "address": "https://api.bilibili.com/x/web-interface/nav",
+      "expectation": "200 OK"
+    },
+    {
+      "name": "Raw 文本文件",
+      "address": "https://raw.githubusercontent.com/gfwlist/gfwlist/master/gfwlist.txt",
+      "expectation": "Contains \"Go\""
+    },
+    {
+      "name": "慢速响应模拟",
+      "address": "https://httpbin.org/delay/5",
+      "expectation": "200 OK",
+      "retry_count": 1
+    }
+  ]
+}
