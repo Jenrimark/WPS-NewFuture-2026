@@ -53,7 +53,7 @@
 
 | 作业文档写法 | 本项目做法 | 说明 |
 |--------------|------------|------|
-| 提到 Tailwind CSS | **未引入** Tailwind | 样式由 **CSS 变量 + BEM 风格类名**（`index.css`）完成，避免与 Ant Design Token 叠床架屋；功能与视觉要求已满足。若老师要求字面完全一致，可再集成 Tailwind。 |
+| 提到 Tailwind CSS | **已引入** Tailwind | 前端已在 Vite 中接入 Tailwind（`@tailwindcss/vite`），并在 `index.css` 引入 Tailwind；同时保留原有 CSS 变量与组件样式实现。 |
 
 ---
 
