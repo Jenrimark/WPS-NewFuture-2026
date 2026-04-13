@@ -60,8 +60,8 @@ func Run(args []string, stdout io.Writer, stderr io.Writer, now func() time.Time
 	})
 
 	t := now()
-	reportContent := report.Generate(results, t)
-	fmt.Fprintln(stdout, reportContent)
+	terminalReport := report.GenerateTerminal(results, t, 56)
+	fmt.Fprintln(stdout, terminalReport)
 
 	wd, err := getwd()
 	if err != nil {
@@ -69,7 +69,8 @@ func Run(args []string, stdout io.Writer, stderr io.Writer, now func() time.Time
 		return 1
 	}
 
-	reportPath, err := report.WriteFile(wd, t, reportContent)
+	fileReport := report.Generate(results, t)
+	reportPath, err := report.WriteFile(wd, t, fileReport)
 	if err != nil {
 		fmt.Fprintf(stderr, "write report failed: %v\n", err)
 		return 1
