@@ -90,3 +90,38 @@ func TestProbeHTTPExpectationFailOnRequestError(t *testing.T) {
 		t.Fatalf("expected status Fail, got %s", status)
 	}
 }
+
+func TestRunSingleTargetRetryExhausted(t *testing.T) {
+	exe := &fakeExecutor{
+		failTimes: map[string]int{"svc": 10},
+		calls:     map[string]int{},
+	}
+	target := config.Target{
+		Name:        "svc",
+		Address:     "https://example.com",
+		Expectation: "200 OK",
+		RetryCount:  2,
+	}
+	result := runSingleTarget(target, 200*time.Millisecond, exe)
+	if result.Success {
+		t.Fatalf("expected failure after retries, got success: %+v", result)
+	}
+	if result.Attempts != 3 {
+		t.Fatalf("expected 3 attempts, got %d", result.Attempts)
+	}
+}
+
+func TestDetectProtocolAndContainsParsing(t *testing.T) {
+	if got := DetectProtocol("https://example.com"); got != "HTTP" {
+		t.Fatalf("expected HTTP, got %s", got)
+	}
+	if got := DetectProtocol("localhost:3306"); got != "TCP" {
+		t.Fatalf("expected TCP, got %s", got)
+	}
+	if got := ParseContainsKeyword(`Contains "Go"`); got != "Go" {
+		t.Fatalf("expected keyword Go, got %q", got)
+	}
+	if got := ParseContainsKeyword("200 OK"); got != "" {
+		t.Fatalf("expected empty keyword, got %q", got)
+	}
+}

@@ -70,12 +70,15 @@ func Run(args []string, stdout io.Writer, stderr io.Writer, now func() time.Time
 	}
 
 	fileReport := report.Generate(results, t)
-	reportPath, err := report.WriteFile(wd, t, fileReport)
+	reportPaths, err := report.WriteFile(wd, t, fileReport)
 	if err != nil {
 		fmt.Fprintf(stderr, "write report failed: %v\n", err)
 		return 1
 	}
-	fmt.Fprintf(stdout, "report saved to %s\n", reportPath)
+	fmt.Fprintln(stdout, "report saved to:")
+	for _, p := range reportPaths {
+		fmt.Fprintf(stdout, "- %s\n", p)
+	}
 	return 0
 }
 

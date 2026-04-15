@@ -215,16 +215,12 @@ func truncateDisplay(s string, width int) string {
 	return b.String()
 }
 
-func WriteFile(dir string, now time.Time, content string) (string, error) {
-	reportDir := dir + string(os.PathSeparator) + "reports"
-	if err := os.MkdirAll(reportDir, 0o755); err != nil {
-		return "", err
-	}
-
+func WriteFile(dir string, now time.Time, content string) ([]string, error) {
 	fileName := fmt.Sprintf("monitor-log-%s.log", now.Format("20060102150405"))
-	path := reportDir + string(os.PathSeparator) + fileName
-	if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
-		return "", err
+	rootPath := dir + string(os.PathSeparator) + fileName
+
+	if err := os.WriteFile(rootPath, []byte(content), 0o644); err != nil {
+		return nil, err
 	}
-	return path, nil
+	return []string{rootPath}, nil
 }
