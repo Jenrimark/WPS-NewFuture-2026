@@ -235,7 +235,7 @@
           userName: '',
           password: '',
           dbName: 'gva',
-          dbPath: ''
+          dbPath: '.'
         })
         break
       default:

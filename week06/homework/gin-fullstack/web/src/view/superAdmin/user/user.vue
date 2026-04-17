@@ -60,6 +60,17 @@
           min-width="180"
           prop="email"
         />
+        <el-table-column
+          align="left"
+          label="登录IP"
+          min-width="150"
+          prop="lastLoginIp"
+        />
+        <el-table-column align="left" label="登录时间" min-width="170">
+          <template #default="scope">
+            {{ formatLoginTime(scope.row.lastLoginTime) }}
+          </template>
+        </el-table-column>
         <el-table-column align="left" label="用户角色" min-width="200">
           <template #default="scope">
             <el-cascader
@@ -330,6 +341,18 @@
   const handleCurrentChange = (val) => {
     page.value = val
     getTableData()
+  }
+
+  const formatLoginTime = (value) => {
+    if (!value) {
+      return '-'
+    }
+    const date = new Date(value)
+    if (Number.isNaN(date.getTime())) {
+      return '-'
+    }
+    const pad = (n) => String(n).padStart(2, '0')
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}`
   }
 
   // 查询

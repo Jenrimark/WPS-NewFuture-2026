@@ -1,385 +1,167 @@
+# Gin Fullstack 二开作业说明（Week06）
 
-<div align=center>
-<img src="http://qmplusimg.henrongyi.top/gvalogo.jpg" width="300" height="300" />
-</div>
+## 项目基本信息
 
-<div align=center>
-<img src="https://img.shields.io/badge/golang-1.20-blue"/>
-<img src="https://img.shields.io/badge/gin-1.9.1-lightBlue"/>
-<img src="https://img.shields.io/badge/vue-3.3.4-brightgreen"/>
-<img src="https://img.shields.io/badge/element--plus-2.3.8-green"/>
-<img src="https://img.shields.io/badge/gorm-1.25.2-red"/>
-<img src="https://gitcode.com/flipped-aurora/gin-vue-admin/star/badge.svg"/>
-</div>
+| 字段 | 内容 |
+|---|---|
+| 学校 | 中国地质大学（武汉） |
+| 姓名 | 吴汉东 |
+| 学号 | 20231003912 |
+| 作业目录 | `week06/homework/gin-fullstack` |
+| 历史文档 | `README_OLD.md`（已保留） |
+| 后端启动 | `cd week06/homework/gin-fullstack/server && go run main.go` |
+| 前端启动 | `cd week06/homework/gin-fullstack/web && npm install && npm run dev` |
+| 初始化入口 | `http://localhost:8080/#/init` |
+| 登录入口 | `http://localhost:8080/#/login` |
 
-<div align=center>
-<a href="https://trendshift.io/repositories/3250" target="_blank"><img src="https://trendshift.io/api/badge/repositories/3250" alt="Calcium-Ion%2Fnew-api | Trendshift" style="width: 250px; height: 55px;" width="250" height="55"/></a>
-</div>
+---
 
-[English](./README-en.md) | 简体中文
+## 作业要求符合性检查（对照 `week06/homework/作业要求.md`）
 
-## ✨一分钟生成前后端基础代码
+| # | 要求摘要 | 当前实现 | 状态 |
+|---|---|---|---|
+| 1 | 使用 SQLite 启动并完成初始化 | `server/config.yaml` 已设置 `system.db-type: sqlite`，并通过初始化页完成建库 | ✅ |
+| 2 | 前后端可启动（`go run main.go` / `npm run dev`） | README 已给出完整命令与入口地址 | ✅ |
+| 3 | 用户管理新增“登录IP、登录时间”两列 | `web/src/view/superAdmin/user/user.vue` 已新增列 | ✅ |
+| 4 | 登录时间格式 `YYYY-MM-DD HH:mm` | 前端 `formatLoginTime()` 已实现 | ✅ |
+| 5 | 登录成功后写入用户最后登录信息 | `TokenNext` 中写入 `last_login_ip`、`last_login_time` | ✅ |
+| 6 | README 包含基本信息、任务索引、核心技术实现 | 本文档已覆盖，且补充复现与问题记录 | ✅ |
 
-<table>
-  <tr>
-    <td width="250">
-	  <p>⭐️ <a href="https://www.bilibili.com/video/BV1B3htzqEf1/?spm_id_from=333.1387.homepage.video_card.click" target="__blank"> 高度适配AI编辑器的MCP </a></p>
-      <p>📄 创建基础模板</p>
-      <p>🤖 AI生成结构</p>
-      <p>⏰ 生成代码</p>
-      <p>🏷️ 分配权限</p>
-      <p>🎉 基础CURD生成完成</p>   
-    </td>
-    <td>
-      <video src="https://private-user-images.githubusercontent.com/165128580/384700666-4d039215-af29-4f86-bb4f-60dbab38f58e.mp4?jwt=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3MzEyNTIxNDYsIm5iZiI6MTczMTI1MTg0NiwicGF0aCI6Ii8xNjUxMjg1ODAvMzg0NzAwNjY2LTRkMDM5MjE1LWFmMjktNGY4Ni1iYjRmLTYwZGJhYjM4ZjU4ZS5tcDQ_WC1BbXotQWxnb3JpdGhtPUFXUzQtSE1BQy1TSEEyNTYmWC1BbXotQ3JlZGVudGlhbD1BS0lBVkNPRFlMU0E1M1BRSzRaQSUyRjIwMjQxMTEwJTJGdXMtZWFzdC0xJTJGczMlMkZhd3M0X3JlcXVlc3QmWC1BbXotRGF0ZT0yMDI0MTExMFQxNTE3MjZaJlgtQW16LUV4cGlyZXM9MzAwJlgtQW16LVNpZ25hdHVyZT00NjJkMDcwZjJkMjAyMmU1N2I2MzQxY2RhODFlNzgzNGRiMDFhMmY2NTYyM2ZmODdhNDVmMWE1NzlhMDdlOTI5JlgtQW16LVNpZ25lZEhlYWRlcnM9aG9zdCJ9.ZJbswpLzF2RHjemcGirKOP0L1fvpl3FUqIiQ_-yjeUo" data-canonical-src="https://private-user-images.githubusercontent.com/165128580/384700666-4d039215-af29-4f86-bb4f-60dbab38f58e.mp4?jwt=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3MzEyNTIxNDYsIm5iZiI6MTczMTI1MTg0NiwicGF0aCI6Ii8xNjUxMjg1ODAvMzg0NzAwNjY2LTRkMDM5MjE1LWFmMjktNGY4Ni1iYjRmLTYwZGJhYjM4ZjU4ZS5tcDQ_WC1BbXotQWxnb3JpdGhtPUFXUzQtSE1BQy1TSEEyNTYmWC1BbXotQ3JlZGVudGlhbD1BS0lBVkNPRFlMU0E1M1BRSzRaQSUyRjIwMjQxMTEwJTJGdXMtZWFzdC0xJTJGczMlMkZhd3M0X3JlcXVlc3QmWC1BbXotRGF0ZT0yMDI0MTExMFQxNTE3MjZaJlgtQW16LUV4cGlyZXM9MzAwJlgtQW16LVNpZ25hdHVyZT00NjJkMDcwZjJkMjAyMmU1N2I2MzQxY2RhODFlNzgzNGRiMDFhMmY2NTYyM2ZmODdhNDVmMWE1NzlhMDdlOTI5JlgtQW16LVNpZ25lZEhlYWRlcnM9aG9zdCJ9.ZJbswpLzF2RHjemcGirKOP0L1fvpl3FUqIiQ_-yjeUo" controls="controls" muted="muted" class="d-block rounded-bottom-2 border-top width-fit" style="max-height:640px; min-height: 200px">
-</video>
-    </td>
-  </tr>
-</table>
+---
 
+## 开发任务索引
 
-# 项目文档
-[在线文档](https://www.gin-vue-admin.com) : https://www.gin-vue-admin.com
+| 任务 | 内容 | 状态 |
+|---|---|---|
+| 任务1 | 环境迁移到 SQLite（初始化 + 登录） | ✅ |
+| 任务2 | 用户行为追踪（登录IP、登录时间） | ✅ |
+| 文档任务 | 新建 Week06 README（完整过程说明） | ✅ |
 
-[初始化](https://www.gin-vue-admin.com/guide/start-quickly/initialization.html)
-						       
-[从环境到部署教学视频](https://www.bilibili.com/video/BV1Rg411u7xH)
+---
 
-[开发教学](https://www.gin-vue-admin.com/guide/start-quickly/env.html) (贡献者:  <a href="https://github.com/LLemonGreen">LLemonGreen</a> And <a href="https://github.com/fkk0509">Fann</a>)
+## 启动与复现步骤（可直接照做）
 
-[交流社区](https://support.qq.com/products/371961)
-
-[插件市场](https://plugin.gin-vue-admin.com/)
-
-[软件著作权证书](https://www.gin-vue-admin.com/copyright.pdf)
-
-# 重要提示
-
-1.本项目从起步到开发到部署均有文档和详细视频教程
-
-2.本项目需要您有一定的golang和vue基础
-
-3.您完全可以通过我们的教程和文档完成一切操作，因此我们不再提供免费的技术服务，如需服务请进行[付费支持](https://www.gin-vue-admin.com/coffee/payment.html)
-
-4.如果您将此项目用于商业用途，请遵守Apache2.0协议并保留作者技术支持声明。您需保留如下版权声明信息，以及日志和代码中所包含的版权声明信息。所需保留信息均为文案性质，不会影响任何业务内容，如决定商用【产生收益的商业行为均在商用行列】或者必须剔除请[购买授权](https://plugin.gin-vue-admin.com/licenseindex.html)
-\
-<img src="https://qmplusimg.henrongyi.top/openSource/login.jpg" width="1000">
-
-<img src="https://qmplusimg.henrongyi.top/openSource/dashboard.jpg" width="1000">
-
-## 1. 基本介绍
-
-### 1.1 项目介绍
-
-> Gin-vue-admin是一个基于 [vue](https://vuejs.org) 和 [gin](https://gin-gonic.com) 开发的全栈前后端分离的开发基础平台，集成jwt鉴权，动态路由，动态菜单，casbin鉴权，表单生成器，代码生成器等功能，提供多种示例文件，让您把更多时间专注在业务开发上。
-
-[在线预览](http://demo.gin-vue-admin.com): http://demo.gin-vue-admin.com
-
-测试用户名：admin
-
-测试密码：123456
-
-### 1.2 贡献指南
-Hi! 首先感谢你使用 gin-vue-admin。
-
-Gin-vue-admin 是一套为快速研发准备的一整套前后端分离架构式的开源框架，旨在快速搭建中小型项目。
-
-Gin-vue-admin 的成长离不开大家的支持，如果你愿意为 gin-vue-admin 贡献代码或提供建议，请阅读以下内容。
-
-#### 1.2.1 Issue 规范
-- issue 仅用于提交 Bug 或 Feature 以及设计相关的内容，其它内容可能会被直接关闭。
-									      
-- 在提交 issue 之前，请搜索相关内容是否已被提出。
-
-#### 1.2.2 Pull Request 规范
-- 请先 fork 一份到自己的项目下，不要直接在仓库下建分支。
-
-- commit 信息要以`[文件名]: 描述信息` 的形式填写，例如 `README.md: fix xxx bug`。
-
-- 如果是修复 bug，请在 PR 中给出描述信息。
-
-- 合并代码需要两名维护人员参与：一人进行 review 后 approve，另一人再次 review，通过后即可合并。
-
-## 2. 使用说明
-
-```
-- node版本 > v18.16.0
-- golang版本 >= v1.22
-- IDE推荐：Goland
-```
-
-### 2.1 server项目
-
-使用 `Goland` 等编辑工具，打开server目录，不可以打开 gin-vue-admin 根目录
+### 1) 启动后端
 
 ```bash
-
-# 克隆项目
-git clone https://github.com/flipped-aurora/gin-vue-admin.git
-# 进入server文件夹
-cd server
-
-# 使用 go mod 并安装go依赖包
-go generate
-
-# 运行
-go run . 
-
+cd week06/homework/gin-fullstack/server
+go run main.go
 ```
 
-### 2.2 web项目
+### 2) 启动前端
 
 ```bash
-# 进入web文件夹
-cd web
-
-# 安装依赖
+cd week06/homework/gin-fullstack/web
 npm install
-
-# 启动web项目
-npm run serve
+npm run dev
 ```
 
-### 2.3 swagger自动化API文档
+### 3) 初始化 SQLite
 
-#### 2.3.1 安装 swagger
+1. 打开 `http://localhost:8080/#/init`；
+2. 点击“我已确认”，进入初始化表单；
+3. 数据库类型选择 `sqlite`；
+4. 推荐参数：
+   - `adminPassword`: `123456`（可自定义）
+   - `dbName`: `gva`
+   - `dbPath`: `.`
+5. 点击“立即初始化”；
+6. 初始化成功后，前往登录页 `http://localhost:8080/#/login`。
 
-``` shell
-go install github.com/swaggo/swag/cmd/swag@latest
-```
+### 4) 功能验收主路径（老师视频检查路径）
 
-#### 2.3.2 生成API文档
+1. 管理员登录；
+2. 进入“用户管理”，新增用户 `a`；
+3. 用第二浏览器登录用户 `a`；
+4. 回到管理员页面刷新用户列表；
+5. 验证用户 `a` 显示“登录IP”和“登录时间（YYYY-MM-DD HH:mm）”。
 
-```` shell
-cd server
-swag init
-````
+---
 
-> 执行上面的命令后，server目录下会出现docs文件夹里的 `docs.go`, `swagger.json`, `swagger.yaml` 三个文件更新，启动go服务之后, 在浏览器输入 [http://localhost:8888/swagger/index.html](http://localhost:8888/swagger/index.html) 即可查看swagger文档
+## 核心技术实现
 
-### 2.4 VSCode工作区
+### 1. SQLite 环境迁移（任务1）
 
-#### 2.4.1 开发
+- 配置文件：`server/config.yaml`
+  - 将 `system.db-type` 从 `mysql` 改为 `sqlite`
+- 初始化流程：
+  - 前端初始化页提交到后端 `/init/initdb`
+  - 后端执行 SQLite 初始化逻辑并写回配置
 
-使用`VSCode`打开根目录下的工作区文件`gin-vue-admin.code-workspace`，在边栏可以看到三个虚拟目录：`backend`、`frontend`、`root`。
+### 2. 用户最后登录信息（任务2）
 
-#### 2.4.2 运行/调试
+#### 后端实现
 
-在运行和调试中也可以看到三个task：`Backend`、`Frontend`、`Both (Backend & Frontend)`。运行`Both (Backend & Frontend)`可以同时启动前后端项目。
+- `server/model/system/sys_user.go`
+  - 新增字段：`LastLoginIP`、`LastLoginTime`
+- `server/service/system/sys_user.go`
+  - 新增方法：`UpdateLastLoginInfo(id, ip, loginTime)`
+- `server/api/v1/system/sys_user.go`
+  - 在 `TokenNext` 登录成功路径写入最后登录 IP 和时间
 
-#### 2.4.3 settings
+#### 前端实现
 
-在工作区配置文件中有`go.toolsEnvVars`字段，是用于`VSCode`自身的go工具环境变量。此外在多go版本的系统中，可以通过`gopath`、`go.goroot`指定运行版本。
+- `web/src/view/superAdmin/user/user.vue`
+  - 表格新增两列：`登录IP`、`登录时间`
+  - 通过 `formatLoginTime()` 格式化为 `YYYY-MM-DD HH:mm`
+  - 空值显示 `-`
+  - 使用 `min-width` 保持列宽自适应风格
 
-```json
-    "go.gopath": null,
-    "go.goroot": null,
-```
+---
 
-## 3. 技术选型
+## 任务过程中的问题与修复记录（重点）
 
-- 前端：用基于 [Vue](https://vuejs.org) 的 [Element](https://github.com/ElemeFE/element) 构建基础页面。
-- 后端：用 [Gin](https://gin-gonic.com/) 快速搭建基础restful风格API，[Gin](https://gin-gonic.com/) 是一个go语言编写的Web框架。
-- 数据库：采用`MySql` > (5.7) 版本 数据库引擎 InnoDB，使用 [gorm](http://gorm.cn) 实现对数据库的基本操作。
-- 缓存：使用`Redis`实现记录当前活跃用户的`jwt`令牌并实现多点登录限制。
-- API文档：使用`Swagger`构建自动化文档。
-- 配置文件：使用 [fsnotify](https://github.com/fsnotify/fsnotify) 和 [viper](https://github.com/spf13/viper) 实现`yaml`格式的配置文件。
-- 日志：使用 [zap](https://github.com/uber-go/zap) 实现日志记录。
+### 问题1：SQLite 初始化失败
 
-## 4. 项目架构
+- **现象**：初始化弹窗提示“自动创建数据库失败，请查看后台日志”
+- **日志关键字**：`unable to open database file: out of memory (14)`
+- **根因**：初始化表单里 `dbPath` 为空，后端拼出 `/gva.db`（根目录），无写权限导致创建失败
+- **修复**：
+  - 后端：`server/model/system/request/sys_init.go`
+    - `dbPath` 为空时默认 `.`，并自动创建目录
+  - 前端：`web/src/view/init/index.vue`
+    - 选择 sqlite 时默认 `dbPath` 改为 `.`
+- **结果**：初始化可正常创建 SQLite 数据库文件
 
-### 4.1 系统架构图
+### 问题2：登录后提示与真实错误不一致（排查记录）
 
-![系统架构图](http://qmplusimg.henrongyi.top/gva/gin-vue-admin.png)
+- **现象**：前端可能看到“账户不存在/密码错误”，但真实原因是数据库未初始化
+- **排查方式**：查看后端日志定位 `db not init`、`/init/checkdb`、`/init/initdb` 请求链路
+- **处理结论**：先完成初始化，再进行登录；登录失败排查需以后端日志为准
 
-### 4.2 前端详细设计图 （提供者:<a href="https://github.com/baobeisuper">baobeisuper</a>）
+### 问题3：前端/后端启动后入口不明确
 
-![前端详细设计图](http://qmplusimg.henrongyi.top/naotu.png)
+- **现象**：只知道启动命令，不清楚初始化页地址
+- **修复**：在 README 明确给出地址：
+  - 初始化页：`http://localhost:8080/#/init`
+  - 登录页：`http://localhost:8080/#/login`
 
-### 4.3 目录结构
+---
 
-```
-    ├── server
-        ├── api             (api层)
-        │   └── v1          (v1版本接口)
-        ├── config          (配置包)
-        ├── core            (核心文件)
-        ├── docs            (swagger文档目录)
-        ├── global          (全局对象)                    
-        ├── initialize      (初始化)                        
-        │   └── internal    (初始化内部函数)                            
-        ├── middleware      (中间件层)                        
-        ├── model           (模型层)                    
-        │   ├── request     (入参结构体)                        
-        │   └── response    (出参结构体)                            
-        ├── packfile        (静态文件打包)                        
-        ├── resource        (静态资源文件夹)                        
-        │   ├── excel       (excel导入导出默认路径)                        
-        │   ├── page        (表单生成器)                        
-        │   └── template    (模板)                            
-        ├── router          (路由层)                    
-        ├── service         (service层)                    
-        ├── source          (source层)                    
-        └── utils           (工具包)                    
-            ├── timer       (定时器接口封装)                        
-            └── upload      (oss接口封装)                        
-    
-            web
-        ├── babel.config.js
-        ├── Dockerfile
-        ├── favicon.ico
-        ├── index.html                 -- 主页面
-        ├── limit.js                   -- 助手代码
-        ├── package.json               -- 包管理器代码
-        ├── src                        -- 源代码
-        │   ├── api                    -- api 组
-        │   ├── App.vue                -- 主页面
-        │   ├── assets                 -- 静态资源
-        │   ├── components             -- 全局组件
-        │   ├── core                   -- gva 组件包
-        │   │   ├── config.js          -- gva网站配置文件
-        │   │   ├── gin-vue-admin.js   -- 注册欢迎文件
-        │   │   └── global.js          -- 统一导入文件
-        │   ├── directive              -- v-auth 注册文件
-        │   ├── main.js                -- 主文件
-        │   ├── permission.js          -- 路由中间件
-        │   ├── pinia                  -- pinia 状态管理器，取代vuex
-        │   │   ├── index.js           -- 入口文件
-        │   │   └── modules            -- modules
-        │   │       ├── dictionary.js
-        │   │       ├── router.js
-        │   │       └── user.js
-        │   ├── router                 -- 路由声明文件
-        │   │   └── index.js
-        │   ├── style                  -- 全局样式
-        │   │   ├── base.scss
-        │   │   ├── basics.scss
-        │   │   ├── element_visiable.scss  -- 此处可以全局覆盖 element-plus 样式
-        │   │   ├── iconfont.css           -- 顶部几个icon的样式文件
-        │   │   ├── main.scss
-        │   │   ├── mobile.scss
-        │   │   └── newLogin.scss
-        │   ├── utils                  -- 方法包库
-        │   │   ├── asyncRouter.js     -- 动态路由相关
-        │   │   ├── btnAuth.js         -- 动态权限按钮相关
-        │   │   ├── bus.js             -- 全局mitt声明文件
-        │   │   ├── date.js            -- 日期相关
-        │   │   ├── dictionary.js      -- 获取字典方法 
-        │   │   ├── downloadImg.js     -- 下载图片方法
-        │   │   ├── format.js          -- 格式整理相关
-        │   │   ├── image.js           -- 图片相关方法
-        │   │   ├── page.js            -- 设置页面标题
-        │   │   ├── request.js         -- 请求
-        │   │   └── stringFun.js       -- 字符串文件
-        |   ├── view -- 主要view代码
-        |   |   ├── about -- 关于我们
-        |   |   ├── dashboard -- 面板
-        |   |   ├── error -- 错误
-        |   |   ├── example --上传案例
-        |   |   ├── iconList -- icon列表
-        |   |   ├── init -- 初始化数据  
-        |   |   |   ├── index -- 新版本
-        |   |   |   ├── init -- 旧版本
-        |   |   ├── layout  --  layout约束页面 
-        |   |   |   ├── aside 
-        |   |   |   ├── bottomInfo     -- bottomInfo
-        |   |   |   ├── screenfull     -- 全屏设置
-        |   |   |   ├── setting        -- 系统设置
-        |   |   |   └── index.vue      -- base 约束
-        |   |   ├── login              --登录 
-        |   |   ├── person             --个人中心 
-        |   |   ├── superAdmin         -- 超级管理员操作
-        |   |   ├── system             -- 系统检测页面
-        |   |   ├── systemTools        -- 系统配置相关页面
-        |   |   └── routerHolder.vue   -- page 入口页面 
-        ├── vite.config.js             -- vite 配置文件
-        └── yarn.lock
+## 常见环境问题排查
 
-```
+### Q1：前端能开，初始化报错
 
-## 5. 主要功能
+- 看后端控制台日志是否有 `unable to open database file`
+- 确认初始化页 `dbPath` 为 `.` 或可写绝对路径
 
-- 权限管理：基于`jwt`和`casbin`实现的权限管理。
-- 文件上传下载：实现基于`七牛云`, `阿里云`, `腾讯云` 的文件上传操作(请开发自己去各个平台的申请对应 `token` 或者对应`key`)。
-- 分页封装：前端使用 `mixins` 封装分页，分页方法调用 `mixins` 即可。
-- 用户管理：系统管理员分配用户角色和角色权限。
-- 角色管理：创建权限控制的主要对象，可以给角色分配不同api权限和菜单权限。
-- 菜单管理：实现用户动态菜单配置，实现不同角色不同菜单。
-- api管理：不同用户可调用的api接口的权限不同。
-- 配置管理：配置文件可前台修改(在线体验站点不开放此功能)。
-- 条件搜索：增加条件搜索示例。
-- restful示例：可以参考用户管理模块中的示例API。
-	- 前端文件参考: [web/src/view/superAdmin/api/api.vue](https://github.com/flipped-aurora/gin-vue-admin/blob/master/web/src/view/superAdmin/api/api.vue)
-    - 后台文件参考: [server/router/sys_api.go](https://github.com/flipped-aurora/gin-vue-admin/blob/master/server/router/sys_api.go)
-- 多点登录限制：需要在`config.yaml`中把`system`中的`use-multipoint`修改为true(需要自行配置Redis和Config中的Redis参数，测试阶段，有bug请及时反馈)。
-- 分片上传：提供文件分片上传和大文件分片上传功能示例。
-- 表单生成器：表单生成器借助 [@Variant Form](https://github.com/vform666/variant-form) 。
-- 代码生成器：后台基础逻辑以及简单curd的代码生成器。
+### Q2：点击“前往初始化”提示“已配置数据库信息，无法初始化”
 
-## 6. 知识库 
+- 说明系统判定已经初始化过
+- 直接去登录页登录；若忘记密码，可删除已有 sqlite db 后重新初始化
 
-## 6.1 团队博客
+### Q3：登录失败
 
-> https://www.yuque.com/flipped-aurora
->
->内有前端框架教学视频。如果觉得项目对您有所帮助可以添加我的个人微信:shouzi_1994，欢迎您提出宝贵的需求。
+- 先确认是否完成初始化
+- 再确认管理员密码是否为初始化时设置的密码（默认一般为 `123456`）
 
-## 6.2 教学视频
+---
 
-（1）手把手教学视频
+## 提交与视频说明（按作业要求）
 
-> https://www.bilibili.com/video/BV1Rg411u7xH/
+1. 视频开头需展示记事本并口播身份信息；
+2. 视频重点演示任务1和任务2；
+3. 时长建议 6-7 分钟；
+4. 视频命名：`姓名_学号_Gin-fullstack.mp4`；
+5. 代码目录：`week06/homework/gin-fullstack`。
 
-（2）后端目录结构调整介绍以及使用方法
-
-> https://www.bilibili.com/video/BV1x44y117TT/
-
-（3）golang基础教学视频
-
-> bilibili：https://space.bilibili.com/322210472/channel/detail?cid=108884
-
-（4）gin框架基础教学
-
-> bilibili：https://space.bilibili.com/322210472/channel/detail?cid=126418&ctype=0
-
-（5）gin-vue-admin 版本更新介绍视频
-
-> bilibili：https://www.bilibili.com/video/BV1kv4y1g7nT
-
-## 7. 联系方式
-
-### 7.1 技术群
-
-### QQ交流群：971857775
-
-### 微信交流群
-| 微信 |
-|  :---:  | 
-| <img width="150" src="http://qmplusimg.henrongyi.top/qrjjz.png"> 
-
-防止广告进群，添加微信，输入以下代码执行结果（请勿转码为string）
-
-```
-str := "5Yqg5YWlR1ZB5Lqk5rWB576k"
-decodeBytes, err := base64.StdEncoding.DecodeString(str)
-fmt.Println(decodeBytes, err)
-```
-
-### [关于我们](https://www.gin-vue-admin.com/about/join.html)
-
-## 8. 贡献者
-
-感谢您对gin-vue-admin的贡献!
-
-<a href="https://openomy.app/github/flipped-aurora/gin-vue-admin" target="_blank" style="display: block; width: 100%;" align="center">
-  <img src="https://openomy.app/svg?repo=flipped-aurora/gin-vue-admin&chart=bubble&latestMonth=3" target="_blank" alt="Contribution Leaderboard" style="display: block; width: 100%;" />
- </a>
-
-## 9. 捐赠
-
-如果你觉得这个项目对你有帮助，你可以请作者喝饮料 :tropical_drink: [点我](https://www.gin-vue-admin.com/coffee/index.html)
-
-## 10. 注意事项
-
-请严格遵守Apache 2.0协议并保留作品声明，去除版权信息请务必[获取授权](https://plugin.gin-vue-admin.com/license)  
-未授权去除版权信息将依法追究法律责任

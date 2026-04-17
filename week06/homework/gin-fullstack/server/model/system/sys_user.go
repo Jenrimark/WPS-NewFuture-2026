@@ -1,6 +1,8 @@
 package system
 
 import (
+	"time"
+
 	"github.com/flipped-aurora/gin-vue-admin/server/global"
 	"github.com/flipped-aurora/gin-vue-admin/server/model/common"
 	"github.com/google/uuid"
@@ -30,6 +32,8 @@ type SysUser struct {
 	Phone         string         `json:"phone"  gorm:"comment:用户手机号"`                                                                        // 用户手机号
 	Email         string         `json:"email"  gorm:"comment:用户邮箱"`                                                                         // 用户邮箱
 	Enable        int            `json:"enable" gorm:"default:1;comment:用户是否被冻结 1正常 2冻结"`                                                    //用户是否被冻结 1正常 2冻结
+	LastLoginIP   string         `json:"lastLoginIp" gorm:"column:last_login_ip;type:varchar(64);default:'';comment:最后登录IP"`                 // 最后登录IP
+	LastLoginTime *time.Time     `json:"lastLoginTime" gorm:"column:last_login_time;comment:最后登录时间"`                                         // 最后登录时间
 	OriginSetting common.JSONMap `json:"originSetting" form:"originSetting" gorm:"type:text;default:null;column:origin_setting;comment:配置;"` //配置
 }
 

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/flipped-aurora/gin-vue-admin/server/config"
 	"os"
+	"path/filepath"
 )
 
 type InitDB struct {
@@ -45,8 +46,12 @@ func (i *InitDB) PgsqlEmptyDsn() string {
 // SqliteEmptyDsn sqlite 空数据库 建库链接
 // Author Kafumio
 func (i *InitDB) SqliteEmptyDsn() string {
+	if i.DBPath == "" {
+		i.DBPath = "."
+	}
+	_ = os.MkdirAll(i.DBPath, os.ModePerm)
 	separator := string(os.PathSeparator)
-	return i.DBPath + separator + i.DBName + ".db"
+	return filepath.Clean(i.DBPath + separator + i.DBName + ".db")
 }
 
 func (i *InitDB) MssqlEmptyDsn() string {
