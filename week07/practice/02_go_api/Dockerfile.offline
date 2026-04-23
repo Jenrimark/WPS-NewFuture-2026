@@ -1,0 +1,5 @@
+FROM scratch
+COPY app /app
+EXPOSE 8081
+ENTRYPOINT ["/app"]
+

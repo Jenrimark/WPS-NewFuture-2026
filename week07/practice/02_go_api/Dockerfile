@@ -1,0 +1,20 @@
+FROM golang:1.22 AS build
+WORKDIR /src
+
+ARG GOPROXY=https://proxy.golang.org,direct
+ENV GOPROXY=${GOPROXY}
+
+ARG GOSUMDB=off
+ENV GOSUMDB=${GOSUMDB}
+
+COPY go.mod ./
+RUN go mod download
+
+COPY . .
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -ldflags="-s -w" -o /out/app .
+
+FROM scratch
+COPY --from=build /out/app /app
+EXPOSE 8081
+ENTRYPOINT ["/app"]
+
