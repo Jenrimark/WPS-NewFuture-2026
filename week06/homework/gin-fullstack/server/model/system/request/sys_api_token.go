@@ -8,5 +8,5 @@ import (
 type SysApiTokenSearch struct {
 	system.SysApiToken
 	request.PageInfo
-    Status *bool `json:"status" form:"status"`
+	Status *bool `json:"status" form:"status"`
 }

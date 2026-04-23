@@ -30,7 +30,7 @@ const (
 	PeakEndHourInclusive   = 22 // 22:00 整点仍属高峰（右闭）
 
 	PeakRangeStartExclusiveMin = PeakStartHourExclusive * MinutesPerHour // 严格大于该分钟数才进入高峰
-	PeakRangeEndInclusiveMin   = PeakEndHourInclusive * MinutesPerHour     // 小于等于该分钟数仍为高峰
+	PeakRangeEndInclusiveMin   = PeakEndHourInclusive * MinutesPerHour   // 小于等于该分钟数仍为高峰
 )
 
 const BillingRuleVersion = "2026.04-billing-v2-intervals"

@@ -33,8 +33,8 @@ type ImportVersionRequest struct {
 
 // VersionInfo 版本信息结构体
 type VersionInfo struct {
-	Name        string `json:"name" binding:"required"`        // 版本名称
-	Code        string `json:"code" binding:"required"`        // 版本号
-	Description string `json:"description"`                    // 版本描述
-	ExportTime  string `json:"exportTime"`                     // 导出时间
+	Name        string `json:"name" binding:"required"` // 版本名称
+	Code        string `json:"code" binding:"required"` // 版本号
+	Description string `json:"description"`             // 版本描述
+	ExportTime  string `json:"exportTime"`              // 导出时间
 }

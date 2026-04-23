@@ -302,7 +302,7 @@ func (sysVersionApi *SysVersionApi) ExportVersion(c *gin.Context) {
 			Status: dict.Status,
 			Desc:   dict.Desc,
 		}
-		
+
 		// 处理字典详情数据，清除ID和时间戳字段
 		cleanDetails := make([]system.SysDictionaryDetail, 0, len(dict.SysDictionaryDetails))
 		for _, detail := range dict.SysDictionaryDetails {
@@ -317,7 +317,7 @@ func (sysVersionApi *SysVersionApi) ExportVersion(c *gin.Context) {
 			cleanDetails = append(cleanDetails, cleanDetail)
 		}
 		cleanDict.SysDictionaryDetails = cleanDetails
-		
+
 		processedDicts = append(processedDicts, cleanDict)
 	}
 

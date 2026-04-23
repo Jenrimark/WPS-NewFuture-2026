@@ -445,7 +445,7 @@ func GetMenuIds(menu system.SysBaseMenu, ids *[]int) {
 	var children []system.SysBaseMenu
 	global.GVA_DB.Where("parent_id = ?", menu.ID).Find(&children)
 	for _, child := range children {
-        // 先递归收集子菜单
+		// 先递归收集子菜单
 		GetMenuIds(child, ids)
 	}
 }
@@ -471,9 +471,9 @@ func removePluginRegisterImport(packageName string) error {
 	}
 
 	importPath := fmt.Sprintf("%s/plugin/%s", module, packageName)
-    importLit := fmt.Sprintf("%q", importPath)
+	importLit := fmt.Sprintf("%q", importPath)
 
-    // 移除 import
+	// 移除 import
 	var newDecls []goast.Decl
 	for _, decl := range astFile.Decls {
 		genDecl, ok := decl.(*goast.GenDecl)
@@ -493,7 +493,7 @@ func removePluginRegisterImport(packageName string) error {
 					newSpecs = append(newSpecs, spec)
 				}
 			}
-            // 如果还有其他import，保留该 decl
+			// 如果还有其他import，保留该 decl
 			if len(newSpecs) > 0 {
 				genDecl.Specs = newSpecs
 				newDecls = append(newDecls, genDecl)

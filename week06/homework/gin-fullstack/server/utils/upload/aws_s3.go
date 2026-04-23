@@ -39,9 +39,9 @@ func (*AwsS3) UploadFile(file *multipart.FileHeader) (string, string, error) {
 	defer f.Close() // 创建文件 defer 关闭
 
 	_, err := uploader.Upload(&s3manager.UploadInput{
-		Bucket: aws.String(global.GVA_CONFIG.AwsS3.Bucket),
-		Key:    aws.String(filename),
-		Body:   f,
+		Bucket:      aws.String(global.GVA_CONFIG.AwsS3.Bucket),
+		Key:         aws.String(filename),
+		Body:        f,
 		ContentType: aws.String(file.Header.Get("Content-Type")),
 	})
 	if err != nil {

@@ -24,7 +24,7 @@ func (e *SystemEvents) RegisterReloadHandler(handler func() error) {
 func (e *SystemEvents) TriggerReload() error {
 	e.mu.RLock()
 	defer e.mu.RUnlock()
-	
+
 	for _, handler := range e.reloadHandlers {
 		if err := handler(); err != nil {
 			return err

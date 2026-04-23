@@ -181,4 +181,3 @@ func (ctl *StudentController) DeleteStudent(c *gin.Context) {
 	fmt.Printf("[DELETE /students/%d] deleted\n", id)
 	c.JSON(http.StatusOK, gin.H{"message": "学生删除成功"})
 }
-

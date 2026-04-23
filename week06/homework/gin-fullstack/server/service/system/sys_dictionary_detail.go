@@ -233,7 +233,7 @@ func (dictionaryDetailService *DictionaryDetailService) GetDictionaryTreeList(di
 		} else {
 			sysDictionaryDetails[i].Disabled = false // 默认不禁用
 		}
-		
+
 		err = dictionaryDetailService.loadChildren(&sysDictionaryDetails[i])
 		if err != nil {
 			return nil, err
@@ -258,7 +258,7 @@ func (dictionaryDetailService *DictionaryDetailService) loadChildren(detail *sys
 		} else {
 			children[i].Disabled = false // 默认不禁用
 		}
-		
+
 		err = dictionaryDetailService.loadChildren(&children[i])
 		if err != nil {
 			return err
@@ -335,7 +335,7 @@ func (dictionaryDetailService *DictionaryDetailService) GetDictionaryTreeListByT
 		} else {
 			sysDictionaryDetails[i].Disabled = false // 默认不禁用
 		}
-		
+
 		err = dictionaryDetailService.loadChildren(&sysDictionaryDetails[i])
 		if err != nil {
 			return nil, err
