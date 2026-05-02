@@ -23,9 +23,11 @@ func main() {
 
 	authSvc := service.NewAuthService(database, cfg.JWTSecret)
 	wordSvc := service.NewWordService(database, cfg)
+	statsSvc := service.NewStatsService(database)
 
 	authH := api.NewAuthHandler(authSvc)
 	wordH := api.NewWordHandler(wordSvc)
+	statsH := api.NewStatsHandler(statsSvc)
 
 	pub := r.Group("/api")
 	{
@@ -37,8 +39,11 @@ func main() {
 	authed.Use(apimw.JWTAuth(cfg.JWTSecret))
 	{
 		authed.GET("/words/query", wordH.QueryWord)
+		authed.GET("/words/export", wordH.ExportWords)
+		authed.GET("/stats/summary", statsH.Summary)
 		authed.POST("/words", wordH.SaveWord)
 		authed.GET("/words", wordH.ListWords)
+		authed.PATCH("/words/:id/note", wordH.PatchNote)
 		authed.DELETE("/words/:id", wordH.DeleteWord)
 	}
 

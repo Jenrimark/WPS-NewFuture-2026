@@ -61,6 +61,9 @@ function render() {
       .item .m { margin-top: 6px; }
       .item ul { margin: 6px 0 0 18px; }
       .pager { display: flex; gap: 10px; align-items: center; justify-content: space-between; }
+      .ta { width: 100%; min-height: 52px; padding: 8px 10px; border: 1px solid #d0d5dd; border-radius: 10px; font: inherit; resize: vertical; }
+      .stats { font-size: 13px; color: #344054; background: #f9fafb; border-radius: 10px; padding: 10px 12px; border: 1px solid #eaecf0; }
+      .nb-toolbar { display: flex; flex-direction: column; gap: 10px; margin-bottom: 12px; }
       @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
     `
   });
@@ -81,7 +84,7 @@ function render() {
 
   const authCard = card("用户认证", buildAuthUI());
   const queryCard = card("智能查词（不自动保存）", buildQueryUI());
-  const notebookCard = card("我的单词本（分页）", buildNotebookUI());
+  const notebookCard = card("我的单词本（分页 · 筛选 · 备注 · 统计 · 导出）", buildNotebookUI());
 
   root.appendChild(style);
   root.appendChild(el("div", { class: "wrap" }, [top, status, el("div", { class: "grid" }, [authCard, queryCard]), notebookCard]));
@@ -155,19 +158,37 @@ function buildQueryUI() {
   });
   queryBtn.classList.add("primary");
 
+  const saveNote = el("textarea", {
+    class: "ta",
+    placeholder: "可选：保存时写入学习备注（如易混点、发音提示）",
+    rows: "2"
+  });
+
   const saveBtn = button("保存到单词本", async () => {
     try {
       if (!latest) throw new Error("请先查询到结果");
       setStatus("保存中…");
-      await api.saveWord(latest);
+      await api.saveWord({
+        word: latest.word,
+        meaning: latest.meaning,
+        examples: latest.examples,
+        ai_provider: latest.ai_provider,
+        note: saveNote.value.trim()
+      });
       setStatus("保存成功");
+      saveNote.value = "";
       window.__reloadNotebook?.();
     } catch (e) {
       setStatus(e.message, true);
     }
   });
 
-  return [el("div", { class: "row" }, [word, sel]), el("div", { class: "row" }, [queryBtn, saveBtn]), resultBox];
+  return [
+    el("div", { class: "row" }, [word, sel]),
+    el("div", { class: "row" }, [queryBtn, saveBtn]),
+    saveNote,
+    resultBox
+  ];
 }
 
 function buildNotebookUI() {
@@ -175,20 +196,58 @@ function buildNotebookUI() {
   const pageSize = 5;
   let page = 1;
   let total = 0;
+  let filterQ = "";
+
+  const filterInput = input("按单词包含文字筛选，如 apple");
+  const filterBtn = button("应用筛选", async () => {
+    filterQ = filterInput.value.trim();
+    page = 1;
+    await load();
+  });
+  filterBtn.classList.add("primary");
+
+  const exportBtn = button("导出 CSV", async () => {
+    try {
+      if (!getToken()) throw new Error("请先登录");
+      setStatus("导出中…");
+      await api.exportWordbook();
+      setStatus("已下载 wordbook.csv");
+    } catch (e) {
+      setStatus(e.message, true);
+    }
+  });
+
+  const statsBox = el("div", { class: "stats", id: "statsBox", text: "统计加载中…" });
+
+  async function refreshStats() {
+    const node = document.querySelector("#statsBox");
+    if (!node || !getToken()) {
+      if (node) node.textContent = "登录后显示学习统计。";
+      return;
+    }
+    try {
+      const s = await api.statsSummary();
+      const parts = Object.entries(s.by_ai_provider || {}).map(([k, v]) => `${k}: ${v}`);
+      node.textContent = `词本共 ${s.total_words} 条；近 7 日新增 ${s.words_last_7_days} 条。按模型：${parts.join("，") || "—"}`;
+    } catch {
+      node.textContent = "统计暂时不可用。";
+    }
+  }
 
   async function load() {
     try {
       if (!getToken()) {
         list.innerHTML = `<div class="muted">请先登录后查看你的单词本。</div>`;
+        statsBox.textContent = "登录后显示学习统计。";
         return;
       }
       setStatus("加载单词本…");
-      const res = await api.listWords({ page, page_size: pageSize });
+      const res = await api.listWords({ page, page_size: pageSize, q: filterQ });
       total = res.total;
 
       list.innerHTML = "";
       if (!res.items?.length) {
-        list.appendChild(el("div", { class: "muted", text: "暂无记录，去右侧查词并保存吧。" }));
+        list.appendChild(el("div", { class: "muted", text: "暂无记录，调整筛选或去上方查词并保存。" }));
       } else {
         res.items.forEach((it) => {
           const box = el("div", { class: "item" });
@@ -197,15 +256,30 @@ function buildNotebookUI() {
           const ul = el("ul");
           (it.examples || []).forEach((x) => ul.appendChild(el("li", { text: x })));
           box.appendChild(ul);
+          const noteTa = el("textarea", { class: "ta", rows: "2", placeholder: "编辑学习备注…" });
+          noteTa.value = it.notes || "";
+          box.appendChild(noteTa);
           box.appendChild(
             el("div", { class: "row" }, [
               el("div", { class: "muted", text: `provider=${it.ai_provider}` }),
+              button("保存备注", async () => {
+                try {
+                  setStatus("保存备注…");
+                  await api.updateWordNote(it.id, noteTa.value.trim());
+                  setStatus("备注已保存");
+                  await load();
+                  await refreshStats();
+                } catch (e) {
+                  setStatus(e.message, true);
+                }
+              }),
               button("删除", async () => {
                 try {
                   setStatus("删除中…");
                   await api.deleteWord(it.id);
                   setStatus("删除成功");
                   await load();
+                  await refreshStats();
                 } catch (e) {
                   setStatus(e.message, true);
                 }
@@ -218,6 +292,7 @@ function buildNotebookUI() {
 
       setStatus("加载完成");
       renderPager();
+      await refreshStats();
     } catch (e) {
       setStatus(e.message, true);
     }
@@ -246,12 +321,13 @@ function buildNotebookUI() {
 
   window.__reloadNotebook = load;
 
-  const wrapper = el("div", {}, [
-    el("div", { id: "pager", class: "pager" }),
-    list
+  const toolbar = el("div", { class: "nb-toolbar" }, [
+    statsBox,
+    el("div", { class: "row" }, [filterInput, filterBtn, exportBtn])
   ]);
 
-  // 首次加载
+  const wrapper = el("div", {}, [toolbar, el("div", { id: "pager", class: "pager" }), list]);
+
   setTimeout(load, 0);
   return [wrapper];
 }

@@ -24,12 +24,13 @@ func NewWordService(db *gorm.DB, cfg config.Config) *WordService {
 }
 
 type WordPayload struct {
-	ID          uint64
-	Word        string
-	Meaning     string
-	Examples    []string
-	AIProvider  string
-	CreatedAt   time.Time
+	ID           uint64
+	Word         string
+	Meaning      string
+	Examples     []string
+	AIProvider   string
+	Notes        string
+	CreatedAt    time.Time
 	HasCreatedAt bool
 }
 
@@ -58,6 +59,7 @@ func (s *WordService) QueryWord(ctx context.Context, uid uint64, word, provider 
 			Meaning:    existing.Meaning,
 			Examples:   examples,
 			AIProvider: existing.AIProvider,
+			Notes:      existing.Notes,
 		}, nil
 	}
 	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
@@ -97,7 +99,13 @@ func (s *WordService) QueryWord(ctx context.Context, uid uint64, word, provider 
 	}, nil
 }
 
-func (s *WordService) SaveWord(uid uint64, word, meaning string, examples []string, aiProvider string) (id uint64, err error) {
+const maxWordNoteLen = 2000
+
+func (s *WordService) SaveWord(uid uint64, word, meaning string, examples []string, aiProvider, note string) (id uint64, err error) {
+	note = strings.TrimSpace(note)
+	if len(note) > maxWordNoteLen {
+		return 0, ErrNoteTooLong
+	}
 	exJSON, _ := json.Marshal(examples)
 	w := model.Word{
 		UserID:       uid,
@@ -105,6 +113,7 @@ func (s *WordService) SaveWord(uid uint64, word, meaning string, examples []stri
 		Meaning:      meaning,
 		ExamplesJSON: string(exJSON),
 		AIProvider:   aiProvider,
+		Notes:        note,
 	}
 	if err := s.db.Create(&w).Error; err != nil {
 		return 0, ErrDuplicateWord
@@ -112,7 +121,7 @@ func (s *WordService) SaveWord(uid uint64, word, meaning string, examples []stri
 	return w.ID, nil
 }
 
-func (s *WordService) ListWords(uid uint64, page, pageSize int) (WordListOutcome, error) {
+func (s *WordService) ListWords(uid uint64, page, pageSize int, keyword string) (WordListOutcome, error) {
 	if page < 1 {
 		page = 1
 	}
@@ -121,16 +130,23 @@ func (s *WordService) ListWords(uid uint64, page, pageSize int) (WordListOutcome
 	}
 	offset := (page - 1) * pageSize
 
+	keyword = strings.TrimSpace(keyword)
+	q := s.db.Model(&model.Word{}).Where("user_id = ? AND deleted_at IS NULL", uid)
+	if keyword != "" {
+		q = q.Where("LOCATE(?, word) > 0", keyword)
+	}
+
 	var total int64
-	if err := s.db.Model(&model.Word{}).
-		Where("user_id = ? AND deleted_at IS NULL", uid).
-		Count(&total).Error; err != nil {
+	if err := q.Count(&total).Error; err != nil {
 		return WordListOutcome{}, err
 	}
 
 	var rows []model.Word
-	if err := s.db.Where("user_id = ? AND deleted_at IS NULL", uid).
-		Order("id DESC").
+	q2 := s.db.Where("user_id = ? AND deleted_at IS NULL", uid)
+	if keyword != "" {
+		q2 = q2.Where("LOCATE(?, word) > 0", keyword)
+	}
+	if err := q2.Order("id DESC").
 		Limit(pageSize).
 		Offset(offset).
 		Find(&rows).Error; err != nil {
@@ -147,6 +163,7 @@ func (s *WordService) ListWords(uid uint64, page, pageSize int) (WordListOutcome
 			Meaning:      r.Meaning,
 			Examples:     examples,
 			AIProvider:   r.AIProvider,
+			Notes:        r.Notes,
 			CreatedAt:    r.CreatedAt,
 			HasCreatedAt: true,
 		})
@@ -157,6 +174,36 @@ func (s *WordService) ListWords(uid uint64, page, pageSize int) (WordListOutcome
 		Total:    total,
 		Items:    items,
 	}, nil
+}
+
+// ListWordsForExport 导出词本（最多 maxRows 条，按 id 倒序）。
+func (s *WordService) ListWordsForExport(uid uint64, maxRows int) ([]model.Word, error) {
+	if maxRows < 1 || maxRows > 5000 {
+		maxRows = 2000
+	}
+	var rows []model.Word
+	err := s.db.Where("user_id = ? AND deleted_at IS NULL", uid).
+		Order("id DESC").
+		Limit(maxRows).
+		Find(&rows).Error
+	return rows, err
+}
+
+func (s *WordService) UpdateWordNote(uid, wordID uint64, note string) error {
+	note = strings.TrimSpace(note)
+	if len(note) > maxWordNoteLen {
+		return ErrNoteTooLong
+	}
+	res := s.db.Model(&model.Word{}).
+		Where("id = ? AND user_id = ? AND deleted_at IS NULL", wordID, uid).
+		Updates(map[string]any{"notes": note})
+	if res.Error != nil {
+		return res.Error
+	}
+	if res.RowsAffected == 0 {
+		return ErrWordNotFound
+	}
+	return nil
 }
 
 func (s *WordService) SoftDeleteWord(uid, id uint64) error {
