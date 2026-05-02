@@ -20,7 +20,7 @@ func NewAuthService(db *gorm.DB, jwtSecret string) *AuthService {
 	return &AuthService{db: db, jwtSecret: jwtSecret}
 }
 
-func (s *AuthService) Register(username, password string) (id uint64, username string, err error) {
+func (s *AuthService) Register(username, password string) (uint64, string, error) {
 	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
 		return 0, "", err

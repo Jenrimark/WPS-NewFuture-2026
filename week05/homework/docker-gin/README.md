@@ -246,7 +246,72 @@ docker compose up -d --build
 ### 数据库初始化注意
 
 - `docs/init.sql` 挂载到 MySQL **`/docker-entrypoint-initdb.d/`**，仅在**数据卷首次初始化**时执行。  
-- 若曾启动过旧库、需重新建表：先 `docker compose down -v`（**会删除数据卷**）再 `up`。
+- 若曾启动过旧库、需重新建表：见下文 **「停止并删除数据卷」**，用 `down -v` 后再 `up`。
+
+---
+
+## 日常运维：停止、再起、重建（Docker Compose）
+
+以下命令均在项目根目录 **`week05/homework/docker-gin`** 下执行（请先 `cd` 到该路径）。  
+若你本机仍使用旧版 CLI，可将 `docker compose` 换成 `docker-compose`（子命令相同）。
+
+### 1）停止并删除容器（默认保留数据库数据）
+
+```bash
+docker compose down
+```
+
+| 项 | 说明 |
+|---|---|
+| **作用** | 停止并移除本 Compose 项目创建的**容器**及默认**网络**等。 |
+| **数据卷** | `docker-compose.yml` 中的命名卷 **`db_data` 默认不会被删除**，MySQL 里已注册的用户、词本等一般在下次启动后仍在。 |
+| **典型用途** | 暂时收工、修改 `backend/.env` 前先停机、释放 80/443 端口占用等。 |
+
+### 2）后台再次启动（不重编镜像）
+
+```bash
+docker compose up -d
+```
+
+| 项 | 说明 |
+|---|---|
+| **作用** | 使用**已有镜像**按 `docker-compose.yml` 重新创建并启动所有服务（后台运行）。 |
+| **典型用途** | 执行过 `down` 之后要把整套环境拉起来；或本机 Docker 重启后恢复栈。 |
+
+### 3）改代码或 Dockerfile 之后：构建并启动
+
+```bash
+docker compose up -d --build
+```
+
+| 项 | 说明 |
+|---|---|
+| **作用** | 先按需**重新构建** `backend`、`frontend` 镜像，再 `-d` 启动。 |
+| **典型用途** | 修改了 Go / 前端源码、`backend/Dockerfile`、`frontend/Dockerfile`、`nginx.conf` 等。 |
+
+### 4）停止并删除数据卷（清空 MySQL，慎用）
+
+```bash
+docker compose down -v
+```
+
+| 项 | 说明 |
+|---|---|
+| **作用** | 在 `down` 基础上**删除** Compose 所管理的命名卷（含本项目的 **`db_data`**），数据库文件被清空。 |
+| **下次启动** | 再执行 `docker compose up -d`（或带 `--build`）时，MySQL 会**重新初始化**，会再次执行 **`docs/init.sql`**。 |
+| **注意** | **`-v` 不可恢复**，仅在你确认不需要保留库内数据时使用。 |
+
+### 5）查看运行状态与日志（排障）
+
+```bash
+docker compose ps
+docker compose logs -f backend
+docker compose logs -f db
+docker compose logs -f frontend
+```
+
+- `ps`：查看各服务是否 **running**。  
+- `logs -f`：持续打印日志；按 **`Ctrl+C`** 仅结束日志跟随，**不会**自动停止容器。
 
 ---
 

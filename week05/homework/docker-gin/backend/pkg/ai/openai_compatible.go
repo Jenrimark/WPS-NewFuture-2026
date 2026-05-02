@@ -27,8 +27,14 @@ func (c OpenAICompatibleClient) GenerateWord(ctx context.Context, word string) (
 	if c.APIKey == "" {
 		return WordResult{}, errors.New("api key is empty")
 	}
+	// OpenAI 官方风格：Base 为 https://api.openai.com/v1 → 拼 /chat/completions。
+	// 阿里云 DashScope 兼容模式：Base 已为 .../compatible-mode/v1 → 只拼 /chat/completions。
 	base := strings.TrimRight(c.BaseURL, "/")
-	url := base + "/v1/chat/completions"
+	path := "/v1/chat/completions"
+	if strings.HasSuffix(base, "/v1") {
+		path = "/chat/completions"
+	}
+	url := base + path
 
 	systemPrompt := "你是英语学习助手。你必须只输出 JSON，不要输出多余文本。"
 	userPrompt := fmt.Sprintf(`请为单词 "%s" 生成精准中文释义，以及 3 条英文例句。
