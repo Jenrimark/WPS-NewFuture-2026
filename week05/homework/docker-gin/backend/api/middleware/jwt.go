@@ -61,4 +61,3 @@ func JWTAuth(secret string) gin.HandlerFunc {
 		c.Next()
 	}
 }
-

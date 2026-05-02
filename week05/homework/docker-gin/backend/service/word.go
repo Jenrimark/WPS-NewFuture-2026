@@ -1,0 +1,174 @@
+package service
+
+import (
+	"context"
+	"encoding/json"
+	"errors"
+	"strings"
+	"time"
+
+	"gorm.io/gorm"
+
+	"wordapp-backend/pkg/ai"
+	"wordapp-backend/pkg/config"
+	"wordapp-backend/model"
+)
+
+type WordService struct {
+	db  *gorm.DB
+	cfg config.Config
+}
+
+func NewWordService(db *gorm.DB, cfg config.Config) *WordService {
+	return &WordService{db: db, cfg: cfg}
+}
+
+type WordPayload struct {
+	ID          uint64
+	Word        string
+	Meaning     string
+	Examples    []string
+	AIProvider  string
+	CreatedAt   time.Time
+	HasCreatedAt bool
+}
+
+type WordListOutcome struct {
+	Page     int
+	PageSize int
+	Total    int64
+	Items    []WordPayload
+}
+
+func (s *WordService) QueryWord(ctx context.Context, uid uint64, word, provider string) (source string, payload WordPayload, err error) {
+	word = strings.TrimSpace(word)
+	provider = strings.TrimSpace(provider)
+	if word == "" || provider == "" {
+		return "", WordPayload{}, errors.New("word and ai_provider are required")
+	}
+
+	var existing model.Word
+	err = s.db.Where("user_id = ? AND word = ? AND deleted_at IS NULL", uid, word).First(&existing).Error
+	if err == nil {
+		var examples []string
+		_ = json.Unmarshal([]byte(existing.ExamplesJSON), &examples)
+		return "db", WordPayload{
+			ID:         existing.ID,
+			Word:       existing.Word,
+			Meaning:    existing.Meaning,
+			Examples:   examples,
+			AIProvider: existing.AIProvider,
+		}, nil
+	}
+	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+		return "", WordPayload{}, err
+	}
+
+	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+
+	var client ai.OpenAICompatibleClient
+	switch strings.ToLower(provider) {
+	case "deepseek":
+		client = ai.OpenAICompatibleClient{
+			APIKey:  s.cfg.DeepSeekAPIKey,
+			BaseURL: s.cfg.DeepSeekBaseURL,
+			Model:   s.cfg.DeepSeekModel,
+		}
+	case "qwen":
+		client = ai.OpenAICompatibleClient{
+			APIKey:  s.cfg.QwenAPIKey,
+			BaseURL: s.cfg.QwenBaseURL,
+			Model:   s.cfg.QwenModel,
+		}
+	default:
+		return "", WordPayload{}, ErrBadAIProvider
+	}
+
+	res, err := client.GenerateWord(ctx, word)
+	if err != nil {
+		return "", WordPayload{}, &AIInvokeError{Msg: err.Error()}
+	}
+	return "ai", WordPayload{
+		Word:       res.Word,
+		Meaning:    res.Meaning,
+		Examples:   res.Examples,
+		AIProvider: provider,
+	}, nil
+}
+
+func (s *WordService) SaveWord(uid uint64, word, meaning string, examples []string, aiProvider string) (id uint64, err error) {
+	exJSON, _ := json.Marshal(examples)
+	w := model.Word{
+		UserID:       uid,
+		Word:         strings.TrimSpace(word),
+		Meaning:      meaning,
+		ExamplesJSON: string(exJSON),
+		AIProvider:   aiProvider,
+	}
+	if err := s.db.Create(&w).Error; err != nil {
+		return 0, ErrDuplicateWord
+	}
+	return w.ID, nil
+}
+
+func (s *WordService) ListWords(uid uint64, page, pageSize int) (WordListOutcome, error) {
+	if page < 1 {
+		page = 1
+	}
+	if pageSize < 1 || pageSize > 50 {
+		pageSize = 10
+	}
+	offset := (page - 1) * pageSize
+
+	var total int64
+	if err := s.db.Model(&model.Word{}).
+		Where("user_id = ? AND deleted_at IS NULL", uid).
+		Count(&total).Error; err != nil {
+		return WordListOutcome{}, err
+	}
+
+	var rows []model.Word
+	if err := s.db.Where("user_id = ? AND deleted_at IS NULL", uid).
+		Order("id DESC").
+		Limit(pageSize).
+		Offset(offset).
+		Find(&rows).Error; err != nil {
+		return WordListOutcome{}, err
+	}
+
+	items := make([]WordPayload, 0, len(rows))
+	for _, r := range rows {
+		var examples []string
+		_ = json.Unmarshal([]byte(r.ExamplesJSON), &examples)
+		items = append(items, WordPayload{
+			ID:           r.ID,
+			Word:         r.Word,
+			Meaning:      r.Meaning,
+			Examples:     examples,
+			AIProvider:   r.AIProvider,
+			CreatedAt:    r.CreatedAt,
+			HasCreatedAt: true,
+		})
+	}
+	return WordListOutcome{
+		Page:     page,
+		PageSize: pageSize,
+		Total:    total,
+		Items:    items,
+	}, nil
+}
+
+func (s *WordService) SoftDeleteWord(uid, id uint64) error {
+	now := time.Now()
+	res := s.db.Model(&model.Word{}).
+		Where("id = ? AND user_id = ? AND deleted_at IS NULL", id, uid).
+		Updates(map[string]any{"deleted_at": &now})
+	if res.Error != nil {
+		return res.Error
+	}
+	if res.RowsAffected == 0 {
+		return ErrWordNotFound
+	}
+	return nil
+}

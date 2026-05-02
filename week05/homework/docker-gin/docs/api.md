@@ -63,7 +63,7 @@
 - **鉴权**：是
 - **Query**：
   - `word`：单词（必填）
-  - `ai_provider`：`deepseek` 或 `qwen`（必填）
+  - `ai_provider`：`qwen`（阿里云 DashScope OpenAI 兼容模式）或 `deepseek`（第二套 OpenAI 兼容线路，对应 `.env` 中可选 `DEEPSEEK_*` 变量段）（必填）
 
 - **逻辑**：
   - 若该用户已保存过该单词且未删除，直接返回数据库结果（`source=db`）
@@ -82,7 +82,7 @@
       "The apple fell from the tree.",
       "Apple released a new device this year."
     ],
-    "ai_provider": "deepseek"
+    "ai_provider": "qwen"
   }
 }
 ```
@@ -103,7 +103,7 @@
   "word": "apple",
   "meaning": "苹果",
   "examples": ["...", "...", "..."],
-  "ai_provider": "deepseek"
+  "ai_provider": "qwen"
 }
 ```
 
@@ -139,7 +139,7 @@
       "word": "apple",
       "meaning": "苹果",
       "examples": ["...", "...", "..."],
-      "ai_provider": "deepseek",
+      "ai_provider": "qwen",
       "created_at": "2026-04-23T22:00:00Z"
     }
   ]

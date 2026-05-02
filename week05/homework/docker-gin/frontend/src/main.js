@@ -124,8 +124,11 @@ function buildAuthUI() {
 function buildQueryUI() {
   const word = input("输入单词，如: apple");
   const sel = el("select", {}, [
-    el("option", { value: "deepseek", text: "DeepSeek" }),
-    el("option", { value: "qwen", text: "通义千问（Qwen）" })
+    el("option", { value: "qwen", text: "阿里云通义千问（DashScope 兼容模式）" }),
+    el("option", {
+      value: "deepseek",
+      text: "备用线路（OpenAI 兼容，需已在 .env 配置可选密钥段）"
+    })
   ]);
 
   const resultBox = el("div", { class: "item", style: "display:none;" });

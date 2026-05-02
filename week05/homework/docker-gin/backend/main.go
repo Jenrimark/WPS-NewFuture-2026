@@ -5,10 +5,11 @@ import (
 
 	"github.com/gin-gonic/gin"
 
+	"wordapp-backend/api"
+	apimw "wordapp-backend/api/middleware"
 	"wordapp-backend/pkg/config"
 	"wordapp-backend/pkg/db"
-	"wordapp-backend/pkg/handlers"
-	"wordapp-backend/pkg/middleware"
+	"wordapp-backend/service"
 )
 
 func main() {
@@ -20,22 +21,25 @@ func main() {
 
 	database := db.MustConnectMySQL(cfg.MySQLDSN)
 
-	authH := handlers.NewAuthHandler(database, cfg.JWTSecret)
-	wordH := handlers.NewWordHandler(database, cfg)
+	authSvc := service.NewAuthService(database, cfg.JWTSecret)
+	wordSvc := service.NewWordService(database, cfg)
 
-	api := r.Group("/api")
+	authH := api.NewAuthHandler(authSvc)
+	wordH := api.NewWordHandler(wordSvc)
+
+	pub := r.Group("/api")
 	{
-		api.POST("/register", authH.Register)
-		api.POST("/login", authH.Login)
+		pub.POST("/register", authH.Register)
+		pub.POST("/login", authH.Login)
 	}
 
-	apiAuth := r.Group("/api")
-	apiAuth.Use(middleware.JWTAuth(cfg.JWTSecret))
+	authed := r.Group("/api")
+	authed.Use(apimw.JWTAuth(cfg.JWTSecret))
 	{
-		apiAuth.GET("/words/query", wordH.QueryWord)
-		apiAuth.POST("/words", wordH.SaveWord)
-		apiAuth.GET("/words", wordH.ListWords)
-		apiAuth.DELETE("/words/:id", wordH.DeleteWord)
+		authed.GET("/words/query", wordH.QueryWord)
+		authed.POST("/words", wordH.SaveWord)
+		authed.GET("/words", wordH.ListWords)
+		authed.DELETE("/words/:id", wordH.DeleteWord)
 	}
 
 	addr := ":" + cfg.Port
