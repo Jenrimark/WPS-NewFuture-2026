@@ -59,3 +59,63 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# ---- 密钥与本地环境（切勿提交真实 KEY）----
+# 任意目录下的 .env；模板文件 .env.example 保留跟踪
+.env
+!.env.example
+.env.local
+.env.*.local
+.env.development
+.env.production
+*.pem
+*.key
+id_rsa
+id_rsa.pub
+*.p12
+*.pfx
+
+# ---- Go 构建产物 ----
+*.test
+*.prof
+*.coverprofile
+coverage.out
+coverage.html
+vendor/
+
+# ---- 前端 / Node 额外产物 ----
+.cache
+.parcel-cache
+.turbo
+.next
+.nuxt
+.output
+.vercel
+*.tsbuildinfo
+.eslintcache
+storybook-static
+
+# ---- Python（若仓库含脚本）----
+__pycache__/
+*.py[cod]
+*$py.class
+.Python
+.venv/
+venv/
+*.egg-info/
+.eggs/
+
+# ---- 压缩包与临时文件（减少误传大文件）----
+*.zip
+*.rar
+*.7z
+*.tar
+*.tar.gz
+*.tgz
+*.bak
+*.tmp
+*.temp
+*~
+
+# ---- 本地编译的 Go 可执行文件（按目录名排除，勿提交）----
+**/docker-gin/backend/server
