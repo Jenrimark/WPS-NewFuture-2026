@@ -84,7 +84,6 @@ rg -i "cors|Access-Control" backend/ --glob "*.go" || true
 | 手动保存绑定 UserID | `service/word.go` `SaveWord` | **满足✅** |
 | 词本分页 `page` / `page_size`；前端分页器 | `service/word.go`、`frontend/src/main.js` | **满足✅** |
 | 按 ID 软删除 | `words.deleted_at`、`SoftDeleteWord` | **满足✅** |
-| **（扩展）** 学习备注、词本子串筛选、学习统计、CSV 导出 | `words.notes` 字段；`GET /api/words?q=`；`PATCH /api/words/:id/note`；`GET /api/stats/summary`；`GET /api/words/export`；`service/stats.go` | **在作业要求之上的增值**，文档见 `docs/api.md` / `docs/db.md` |
 
 **说明（AI 线路）**：作业原文允许「通义千问」等。本项目**主用阿里云 DashScope 兼容模式**（`ai_provider=qwen`）。另提供**可选第二套 OpenAI 兼容接口**（请求参数值为 `deepseek`，仅为代码与变量历史命名；详见 `.env.example`），不在此文档展开具体厂商名称。
 
@@ -113,8 +112,8 @@ rg "AutoMigrate" week05/homework/docker-gin/backend/ --glob "*.go" || true
 | 要求 | 核验 | 结论 |
 |---|---|---|
 | `README.md` 含姓名学校学号、任务索引、简介/架构、从零运行、AI Key 配置说明、一键启动、访问方式 | 本文档 | **满足✅** |
-| `docs/api.md` 覆盖全部业务接口及错误码（含扩展接口） | `docs/api.md` 共 9 组接口说明 | **满足✅** |
-| `docs/db.md` 表结构、字段、关联（含 `notes` 扩展） | `docs/db.md` | **满足✅** |
+| `docs/api.md` 覆盖全部业务接口及错误码 | 打开 `docs/api.md` 核对 | **满足✅** |
+| `docs/db.md` 表结构、字段、关联 | 打开 `docs/db.md` 核对 | **满足✅** |
 
 ---
 
@@ -124,7 +123,6 @@ rg "AutoMigrate" week05/homework/docker-gin/backend/ --glob "*.go" || true
 |---|---|
 | 注册 / 登录 / JWT | `backend/service/auth.go`、`backend/api/auth.go`、`backend/api/middleware/jwt.go` |
 | 查词 / 保存 / 列表 / 软删 | `backend/service/word.go`、`backend/api/word.go` |
-| 扩展：备注 / 筛选 / 统计 / 导出 | `service/word.go`、`service/stats.go`、`api/word.go`、`api/stats.go`、`frontend/src/main.js` |
 | 跨域 | 开发 `frontend/vite.config.js`；生产 `frontend/nginx.conf`；后端无 CORS |
 | 库表初始化 | `docs/init.sql` + `docker-compose.yml` 挂载 |
 | 多阶段镜像 | `backend/Dockerfile`、`frontend/Dockerfile` |
@@ -137,8 +135,7 @@ rg "AutoMigrate" week05/homework/docker-gin/backend/ --glob "*.go" || true
 2. 前端请求头携带 `Authorization: Bearer <token>`。  
 3. **智能查词**：若该用户词本中已有该词且未删除 → 直接返回数据库（`source=db`）；否则调用大模型（`source=ai`），**不写库**。  
 4. 用户点击「保存到单词本」→ 写入 `words` 表并绑定 `user_id`。  
-5. 词本列表分页展示；删除为软删除（`deleted_at`）。  
-6. **（扩展）** 保存时可写**学习备注**；词本支持**关键词筛选**（`q`）；**学习统计**（总量、近 7 日新增、按模型分布）；一键 **CSV 导出**便于打印与 Excel 复习。
+5. 词本列表分页展示；删除为软删除（`deleted_at`）。
 
 ### 架构图（逻辑）
 
@@ -335,11 +332,8 @@ docker compose logs -f frontend
 | 注册 | POST | `/api/register` | 否 |
 | 登录 | POST | `/api/login` | 否 |
 | 智能查词 | GET | `/api/words/query` | 是 |
-| 保存单词（可选 `note`） | POST | `/api/words` | 是 |
-| 分页词本（可选 `q` 筛选） | GET | `/api/words` | 是 |
-| 更新学习备注 | PATCH | `/api/words/:id/note` | 是 |
-| 学习统计 | GET | `/api/stats/summary` | 是 |
-| 导出词本 CSV | GET | `/api/words/export` | 是 |
+| 保存单词 | POST | `/api/words` | 是 |
+| 分页词本 | GET | `/api/words` | 是 |
 | 软删 | DELETE | `/api/words/:id` | 是 |
 
 ---
@@ -347,7 +341,7 @@ docker compose logs -f frontend
 ## 数据库速查（详见 `docs/db.md`）
 
 - **`users`**：`password_hash`（bcrypt），`username` 唯一。  
-- **`words`**：外键 `user_id` → `users.id`，`(user_id, word)` 唯一，`deleted_at` 软删；**扩展字段 `notes`**（学习备注，`TEXT` 可空）。
+- **`words`**：外键 `user_id` → `users.id`，`(user_id, word)` 唯一，`deleted_at` 软删。
 
 ---
 
@@ -359,7 +353,6 @@ docker compose logs -f frontend
 - [ ] 登录返回 JWT；未带 Token 访问受保护接口 → `UNAUTHORIZED`  
 - [ ] 已保存词 → 查词 `source=db`；未保存 → `source=ai` 且未自动入库  
 - [ ] 手动保存后列表可分页；删除后列表不再出现  
-- [ ] （扩展）筛选 `q`、统计摘要、备注保存、CSV 导出可用  
 
 ### 工程
 
@@ -376,7 +369,6 @@ docker compose logs -f frontend
 2. **401**：检查 `Authorization: Bearer <token>` 与 `localStorage`。  
 3. **表未创建**：确认 `init.sql` 挂载；必要时 `down -v` 清空卷后重建。  
 4. **HTTPS 证书告警**：自签名预期行为；公网请换正式证书。  
-5. **升级代码后数据库报错 `Unknown column 'notes'`**：说明仍在使用**旧数据卷**（建表脚本已增加 `notes`）。在确认可删库的前提下执行 `docker compose down -v` 后重新 `up --build`，或自行在 MySQL 内执行 `ALTER TABLE words ADD COLUMN notes TEXT NULL COMMENT '...' AFTER ai_provider;`。
 
 ---
 
@@ -396,14 +388,3 @@ docker compose logs -f frontend
 - 查词与落库分离，避免误写入。  
 - 目录 **`api` / `service` / `model`** 与作业示例一致；对外 **80/443** 与作业「等端口」表述一致。  
 - **大模型主用阿里云 DashScope 兼容模式**；备用线路为可选第二套 OpenAI 兼容接口，细节由你在 `.env` 中配置，文档不绑定单一第三方品牌名。
-
-### 希望老师看到的扩展设计（在《要求》之上）
-
-以下能力**不改变**原作业核心流程（注册登录、JWT、查词不落库、手动保存、分页、软删、禁止 CORS/AutoMigrate、Compose 三服务与文档），用于体现**产品化与可复习性**：
-
-1. **学习备注（`words.notes`）**：保存时可带备注，或事后 `PATCH` 修改，支持「易错点、联想记忆」等个性化学习。  
-2. **词本子串筛选（`GET /api/words?q=`）**：词量增大后仍能快速定位，使用 `LOCATE` 避免 SQL 通配符注入。  
-3. **学习统计（`GET /api/stats/summary`）**：总量、近 7 日新增、`GROUP BY ai_provider`，便于自查学习节奏与模型使用分布。  
-4. **CSV 导出（`GET /api/words/export`）**：便于打印、Excel 筛选与家长/小组互评；最多 5000 条、UTF-8 CSV。  
-
-**接口与库表**已按课程要求写入 **`docs/api.md`**（逐接口：路径、方法、鉴权、参数、成功 JSON、错误码）与 **`docs/db.md`**（字段类型、主外键、索引、业务含义、用户–单词关联）。前端在「单词本」卡片内提供筛选、统计展示、备注编辑与导出按钮，便于验收演示。
