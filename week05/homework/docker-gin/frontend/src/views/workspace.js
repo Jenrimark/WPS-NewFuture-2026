@@ -49,12 +49,6 @@ function buildQueryUI() {
     "primary"
   );
 
-  const saveNote = el("textarea", {
-    class: "textarea",
-    placeholder: "可选：保存时写入学习备注（易混点、发音提示等）",
-    rows: "3"
-  });
-
   const saveBtn = button(
     "保存到单词本",
     async () => {
@@ -65,11 +59,9 @@ function buildQueryUI() {
           word: latest.word,
           meaning: latest.meaning,
           examples: latest.examples,
-          ai_provider: latest.ai_provider,
-          note: saveNote.value.trim()
+          ai_provider: latest.ai_provider
         });
         setStatus("保存成功");
-        saveNote.value = "";
         window.__reloadNotebook?.();
       } catch (e) {
         setStatus(e.message, true);
@@ -84,7 +76,6 @@ function buildQueryUI() {
       el("div", { class: "provider-wrap" }, [sel])
     ]),
     el("div", { class: "btn-row" }, [queryBtn, saveBtn]),
-    saveNote,
     resultBox
   ];
 }
@@ -164,31 +155,9 @@ function buildNotebookUI() {
           const ul = el("ul", { class: "examples" });
           (it.examples || []).forEach((x) => ul.appendChild(el("li", { text: x })));
           box.appendChild(ul);
-          const noteTa = el("textarea", {
-            class: "textarea",
-            rows: "2",
-            placeholder: "编辑学习备注…"
-          });
-          noteTa.value = it.notes || "";
-          box.appendChild(noteTa);
           box.appendChild(
             el("div", { class: "word-item-actions" }, [
               el("span", { class: "muted small", text: `provider=${it.ai_provider}` }),
-              button(
-                "保存备注",
-                async () => {
-                  try {
-                    setStatus("保存备注…");
-                    await api.updateWordNote(it.id, noteTa.value.trim());
-                    setStatus("备注已保存");
-                    await load();
-                    await refreshStats();
-                  } catch (e) {
-                    setStatus(e.message, true);
-                  }
-                },
-                "btn btn-sm"
-              ),
               button(
                 "删除",
                 async () => {
@@ -293,8 +262,8 @@ export function renderWorkspace(root) {
   const main = el("main", { class: "app-main" }, [
     status,
     el("div", { class: "workspace-grid" }, [
-      card("智能查词（查询结果不会自动入库）", buildQueryUI()),
-      card("我的单词本（分页 · 筛选 · 备注 · 统计 · 导出）", buildNotebookUI(), "card card-span")
+      card("智能查词（查询结果不会自动入库）", buildQueryUI(), "card card-span"),
+      card("我的单词本（分页 · 筛选 · 统计 · 导出）", buildNotebookUI(), "card card-span")
     ])
   ]);
 

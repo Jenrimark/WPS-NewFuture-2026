@@ -20,6 +20,9 @@ func main() {
 	r.Use(gin.Logger(), gin.Recovery())
 
 	database := db.MustConnectMySQL(cfg.MySQLDSN)
+	if err := db.RunStructuralMigrations(database); err != nil {
+		log.Fatalf("[db] migrations failed: %v", err)
+	}
 
 	authSvc := service.NewAuthService(database, cfg.JWTSecret)
 	wordSvc := service.NewWordService(database, cfg)
@@ -43,7 +46,6 @@ func main() {
 		authed.GET("/stats/summary", statsH.Summary)
 		authed.POST("/words", wordH.SaveWord)
 		authed.GET("/words", wordH.ListWords)
-		authed.PATCH("/words/:id/note", wordH.PatchNote)
 		authed.DELETE("/words/:id", wordH.DeleteWord)
 	}
 

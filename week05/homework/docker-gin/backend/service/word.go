@@ -29,7 +29,6 @@ type WordPayload struct {
 	Meaning      string
 	Examples     []string
 	AIProvider   string
-	Notes        string
 	CreatedAt    time.Time
 	HasCreatedAt bool
 }
@@ -59,7 +58,6 @@ func (s *WordService) QueryWord(ctx context.Context, uid uint64, word, provider 
 			Meaning:    existing.Meaning,
 			Examples:   examples,
 			AIProvider: existing.AIProvider,
-			Notes:      existing.Notes,
 		}, nil
 	}
 	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
@@ -99,13 +97,7 @@ func (s *WordService) QueryWord(ctx context.Context, uid uint64, word, provider 
 	}, nil
 }
 
-const maxWordNoteLen = 2000
-
-func (s *WordService) SaveWord(uid uint64, word, meaning string, examples []string, aiProvider, note string) (id uint64, err error) {
-	note = strings.TrimSpace(note)
-	if len(note) > maxWordNoteLen {
-		return 0, ErrNoteTooLong
-	}
+func (s *WordService) SaveWord(uid uint64, word, meaning string, examples []string, aiProvider string) (id uint64, err error) {
 	exJSON, _ := json.Marshal(examples)
 	w := model.Word{
 		UserID:       uid,
@@ -113,7 +105,6 @@ func (s *WordService) SaveWord(uid uint64, word, meaning string, examples []stri
 		Meaning:      meaning,
 		ExamplesJSON: string(exJSON),
 		AIProvider:   aiProvider,
-		Notes:        note,
 	}
 	if err := s.db.Create(&w).Error; err != nil {
 		return 0, ErrDuplicateWord
@@ -163,7 +154,6 @@ func (s *WordService) ListWords(uid uint64, page, pageSize int, keyword string) 
 			Meaning:      r.Meaning,
 			Examples:     examples,
 			AIProvider:   r.AIProvider,
-			Notes:        r.Notes,
 			CreatedAt:    r.CreatedAt,
 			HasCreatedAt: true,
 		})
@@ -187,23 +177,6 @@ func (s *WordService) ListWordsForExport(uid uint64, maxRows int) ([]model.Word,
 		Limit(maxRows).
 		Find(&rows).Error
 	return rows, err
-}
-
-func (s *WordService) UpdateWordNote(uid, wordID uint64, note string) error {
-	note = strings.TrimSpace(note)
-	if len(note) > maxWordNoteLen {
-		return ErrNoteTooLong
-	}
-	res := s.db.Model(&model.Word{}).
-		Where("id = ? AND user_id = ? AND deleted_at IS NULL", wordID, uid).
-		Updates(map[string]any{"notes": note})
-	if res.Error != nil {
-		return res.Error
-	}
-	if res.RowsAffected == 0 {
-		return ErrWordNotFound
-	}
-	return nil
 }
 
 func (s *WordService) SoftDeleteWord(uid, id uint64) error {

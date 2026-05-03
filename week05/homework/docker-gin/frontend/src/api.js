@@ -71,7 +71,5 @@ export const api = {
   },
   deleteWord: (id) => request(`/api/words/${encodeURIComponent(id)}`, { method: "DELETE" }),
   statsSummary: () => request("/api/stats/summary"),
-  updateWordNote: (id, note) =>
-    request(`/api/words/${encodeURIComponent(id)}/note`, { method: "PATCH", body: { note } }),
   exportWordbook
 };
