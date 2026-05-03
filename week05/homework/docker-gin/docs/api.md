@@ -125,6 +125,7 @@
 - **Query**：
   - `page`：默认 1
   - `page_size`：默认 10，最大 50
+  - `q`（可选）：按单词字段子串筛选（`LOCATE`，非全文检索）
 
 - **成功返回**：
 
@@ -165,3 +166,35 @@
   - `UNAUTHORIZED`
   - `BAD_REQUEST`：id 非法
   - `NOT_FOUND`：记录不存在或不属于当前用户
+
+## 7. 导出词本（CSV）
+
+- **路径**：`GET /api/words/export`
+- **鉴权**：是
+- **说明**：返回当前用户词本（未软删）最多 5000 条，按 `id` 倒序；响应体为 **CSV 文件**（非 JSON），`Content-Disposition: attachment; filename="wordbook.csv"`。
+
+- **CSV 列**：`word`, `meaning`, `examples_json`, `ai_provider`, `created_at`
+
+- **失败**：HTTP 500，`{"code":"INTERNAL_ERROR",...}`（JSON）
+
+## 8. 学习统计摘要
+
+- **路径**：`GET /api/stats/summary`
+- **鉴权**：是
+
+- **成功返回**：
+
+```json
+{
+  "total_words": 10,
+  "words_last_7_days": 2,
+  "by_ai_provider": {
+    "qwen": 8,
+    "deepseek": 2
+  }
+}
+```
+
+- **失败错误码**：
+  - `UNAUTHORIZED`
+  - `INTERNAL_ERROR`：统计查询失败

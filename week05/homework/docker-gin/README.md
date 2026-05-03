@@ -82,8 +82,15 @@ rg -i "cors|Access-Control" backend/ --glob "*.go" || true
 | 登录 JWT；前端存储并 `Authorization: Bearer` | `frontend/src/api.js`、`main.js` | **满足✅** |
 | 查词：`word`、`ai_provider`；先库后 AI；AI JSON 含释义 + 3 例句；**不落库** | `service/word.go`、`pkg/ai/openai_compatible.go` | **满足✅** |
 | 手动保存绑定 UserID | `service/word.go` `SaveWord` | **满足✅** |
-| 词本分页 `page` / `page_size`；前端分页器 | `service/word.go`、`frontend/src/main.js` | **满足✅** |
+| 词本分页 `page` / `page_size`；前端分页器 | `service/word.go`、`frontend/src/views/workspace.js` | **满足✅** |
 | 按 ID 软删除 | `words.deleted_at`、`SoftDeleteWord` | **满足✅** |
+
+**扩展（超出作业原文，已实现并文档化）**：
+
+| 能力 | 实现位置 | 文档 |
+|---|---|---|
+| 词本导出 CSV | `api/word.go` `ExportWords`、`service/word.go` `ListWordsForExport` | `docs/api.md` §7 |
+| 学习统计（总量、近 7 日、按 `ai_provider` 聚合） | `api/stats.go`、`service/stats.go` | `docs/api.md` §8 |
 
 **说明（AI 线路）**：作业原文允许「通义千问」等。本项目**主用阿里云 DashScope 兼容模式**（`ai_provider=qwen`）。另提供**可选第二套 OpenAI 兼容接口**（请求参数值为 `deepseek`，仅为代码与变量历史命名；详见 `.env.example`），不在此文档展开具体厂商名称。
 
@@ -97,7 +104,7 @@ rg -i "cors|Access-Control" backend/ --glob "*.go" || true
 | Compose：`db`、`backend`、`frontend` | `docker-compose.yml` | **满足✅** |
 | 共享网络；仅暴露 frontend；容器名互访 | `networks: appnet`；仅 `frontend` 有 `ports`；Nginx → `backend:8080`，DSN `db:3306` | **满足✅** |
 | `backend` `depends_on` `db` | 已配置 | **满足✅** |
-| **禁止 AutoMigrate**；`init.sql` 挂 `docker-entrypoint-initdb.d` | `docs/init.sql` 挂载；代码无 `AutoMigrate` | **满足✅** |
+| **禁止 AutoMigrate**；`init.sql` 挂 `docker-entrypoint-initdb.d` | `docs/init.sql` 挂载；代码无 `AutoMigrate`；`pkg/db/migrate.go` 仅对历史列做幂等 `ALTER`（不建表） | **满足✅** |
 | 对外 80/443 等 | `ports: "80:80"`、`"443:443"`；镜像内自签名 TLS | **满足✅** |
 
 **仓库自检命令（可选）**：
@@ -112,7 +119,7 @@ rg "AutoMigrate" week05/homework/docker-gin/backend/ --glob "*.go" || true
 | 要求 | 核验 | 结论 |
 |---|---|---|
 | `README.md` 含姓名学校学号、任务索引、简介/架构、从零运行、AI Key 配置说明、一键启动、访问方式 | 本文档 | **满足✅** |
-| `docs/api.md` 覆盖全部业务接口及错误码 | 打开 `docs/api.md` 核对 | **满足✅** |
+| `docs/api.md` 覆盖全部业务接口及错误码 | **§1～§8** 与 `backend/main.go` 中 **8** 条路由一一对应（含注册/登录、查词、保存、列表、软删、导出、统计）；列表接口另支持可选 Query `q`，见 `docs/api.md` §5 | **满足✅** |
 | `docs/db.md` 表结构、字段、关联 | 打开 `docs/db.md` 核对 | **满足✅** |
 
 ---
@@ -122,7 +129,8 @@ rg "AutoMigrate" week05/homework/docker-gin/backend/ --glob "*.go" || true
 | 任务 | 实现位置 |
 |---|---|
 | 注册 / 登录 / JWT | `backend/service/auth.go`、`backend/api/auth.go`、`backend/api/middleware/jwt.go` |
-| 查词 / 保存 / 列表 / 软删 | `backend/service/word.go`、`backend/api/word.go` |
+| 查词 / 保存 / 列表 / 软删 / 导出 CSV | `backend/service/word.go`、`backend/api/word.go` |
+| 学习统计 | `backend/service/stats.go`、`backend/api/stats.go` |
 | 跨域 | 开发 `frontend/vite.config.js`；生产 `frontend/nginx.conf`；后端无 CORS |
 | 库表初始化 | `docs/init.sql` + `docker-compose.yml` 挂载 |
 | 多阶段镜像 | `backend/Dockerfile`、`frontend/Dockerfile` |
@@ -135,56 +143,97 @@ rg "AutoMigrate" week05/homework/docker-gin/backend/ --glob "*.go" || true
 2. 前端请求头携带 `Authorization: Bearer <token>`。  
 3. **智能查词**：若该用户词本中已有该词且未删除 → 直接返回数据库（`source=db`）；否则调用大模型（`source=ai`），**不写库**。  
 4. 用户点击「保存到单词本」→ 写入 `words` 表并绑定 `user_id`。  
-5. 词本列表分页展示；删除为软删除（`deleted_at`）。
+5. 词本列表分页展示（可选按单词关键字 `q` 筛选）；删除为软删除（`deleted_at`）。  
+6. 工作台提供 **导出词本（CSV）** 与 **学习统计**（调用 §7、§8 对应接口）。
 
 ### 架构图（逻辑）
 
+说明：**生产环境**下浏览器只访问 **Nginx（80/443）**；静态页面与 `/api/*` 同源，由 Nginx 将 API 反代到 Gin；MySQL 仅 backend 可达；大模型 HTTPS 仅在「智能查词且词本未命中」时由 backend 发起。
+
 ```mermaid
-flowchart LR
-  subgraph host["宿主机浏览器"]
-    U[用户]
+flowchart TB
+  subgraph client["宿主机浏览器"]
+    U["用户 / 前端 SPA"]
   end
-  subgraph compose["Docker Compose / appnet"]
-    F[Nginx frontend :80/:443]
-    B[Gin backend :8080]
-    D[(MySQL db)]
+  subgraph fe["frontend 容器 · Nginx :80 / :443"]
+    NG["静态页面 + /api 反代"]
   end
-  U -->|HTTP(S) 同源 /api| F
-  F -->|proxy_pass /api| B
-  B --> D
-  B -->|HTTPS| EXT[DashScope 等 OpenAI 兼容 API]
+  subgraph be["backend 容器 · Gin :8080"]
+    API["认证 JWT · 查词 · 词本 · 导出 · 统计"]
+  end
+  subgraph data["db 容器 · MySQL 8"]
+    DB[("wordapp 库")]
+  end
+  subgraph ext["公网（可选）"]
+    AI["DashScope 等 OpenAI 兼容 Chat API"]
+  end
+  U -->|"HTTP(S) 唯一入口"| NG
+  NG -->|"proxy_pass /api/*"| API
+  API --> DB
+  API -.->|"仅智能查词且词本无该词"| AI
 ```
 
 ---
 
 ## 目录结构（与仓库一致）
 
+下列为**源码与配置**主干；`frontend/dist/`、`backend/server`（本机构建二进制）等为生成物，**勿提交**；本地密钥在 `backend/.env`（由 `.gitignore` 忽略）。`backend/pkg/` 下另有空目录 `handlers/`、`middleware/`、`models/`（预留占位，当前路由与业务均在 `api/`、`model/`、`service/`）。
+
 ```text
 week05/homework/docker-gin
-├── backend/
-│   ├── Dockerfile
-│   ├── main.go
-│   ├── .env.example
-│   ├── api/                 # HTTP（Gin）
-│   │   └── middleware/      # JWT
-│   ├── service/             # 业务逻辑
-│   ├── model/               # GORM 模型
-│   └── pkg/                 # config / db / ai
-├── frontend/
-│   ├── Dockerfile
-│   ├── nginx.conf
-│   ├── vite.config.js
+├── backend/                          # Go + Gin 后端
+│   ├── Dockerfile                    # 多阶段构建，产出精简运行镜像
+│   ├── main.go                       # 入口：路由注册、依赖注入、监听端口
+│   ├── go.mod / go.sum               # Go 模块与依赖锁定
+│   ├── .env.example                  # 环境变量模板（复制为 .env 后本地填写）
+│   ├── .dockerignore                 # 减小构建上下文
+│   ├── api/                          # HTTP 层：参数绑定、JSON 响应、错误码
+│   │   ├── auth.go                   # 注册 / 登录
+│   │   ├── word.go                   # 查词、保存、列表、导出、软删
+│   │   ├── stats.go                  # 学习统计摘要
+│   │   └── middleware/
+│   │       └── jwt.go                # 鉴权：解析 Authorization Bearer
+│   ├── service/                      # 业务逻辑（与 HTTP、存储解耦）
+│   │   ├── auth.go                   # 密码 bcrypt、签发 JWT
+│   │   ├── word.go                   # 先库后 AI、分页、导出、软删
+│   │   ├── stats.go                  # 词本聚合统计
+│   │   └── errors.go                 # 业务错误与对外 code 映射
+│   ├── model/                        # GORM 模型与表字段对应
+│   │   └── models.go
+│   └── pkg/                          # 可复用基础设施（非业务编排）
+│       ├── config/
+│       │   └── config.go             # Viper 读环境变量 / .env
+│       ├── db/
+│       │   ├── mysql.go              # 连接池、重试连接
+│       │   └── migrate.go            # 幂等结构补丁（非 AutoMigrate 建表）
+│       └── ai/
+│           └── openai_compatible.go  # 调用 OpenAI 兼容 Chat Completions
+├── frontend/                         # Vite + Vanilla JS 前端
+│   ├── Dockerfile                    # Node 构建 + nginx:alpine 发布
+│   ├── nginx.conf                    # 生产：静态资源 + /api 反代 backend
+│   ├── vite.config.js                # 开发：dev server 与 /api 代理
+│   ├── index.html                    # SPA 入口页
+│   ├── package.json                  # 脚本与 Vite 依赖
+│   ├── .dockerignore
 │   └── src/
-├── docs/
-│   ├── api.md
-│   ├── db.md
-│   └── init.sql
-├── docker-compose.yml
-├── README.md
-└── 要求.md
+│       ├── main.js                   # 挂载根节点、启动路由
+│       ├── router.js                 # 前端路由与视图切换
+│       ├── api.js                    # fetch 封装、Token、各接口方法
+│       ├── dom.js                    # 轻量 DOM 辅助（按钮、卡片等）
+│       ├── styles.css                # 全局样式
+│       └── views/
+│           ├── auth.js               # 登录 / 注册页
+│           └── workspace.js          # 查词、词本、分页、导出、统计 UI
+├── docs/                             # 交付文档与库表脚本
+│   ├── api.md                        # REST 接口说明与错误码
+│   ├── db.md                         # 表结构、索引、关联说明
+│   └── init.sql                      # MySQL 初始化建表（Compose 挂载）
+├── docker-compose.yml                # db + backend + frontend 编排与网络
+└── README.md                         # 本说明：运行、核验、架构
 ```
 
 ---
+
 
 ## AI 服务配置说明（本项目实际：阿里云为主）
 
@@ -333,8 +382,10 @@ docker compose logs -f frontend
 | 登录 | POST | `/api/login` | 否 |
 | 智能查词 | GET | `/api/words/query` | 是 |
 | 保存单词 | POST | `/api/words` | 是 |
-| 分页词本 | GET | `/api/words` | 是 |
+| 分页词本 | GET | `/api/words`（Query：`page`、`page_size`，可选 `q`） | 是 |
 | 软删 | DELETE | `/api/words/:id` | 是 |
+| 导出词本 CSV | GET | `/api/words/export` | 是 |
+| 学习统计 | GET | `/api/stats/summary` | 是 |
 
 ---
 
@@ -353,13 +404,14 @@ docker compose logs -f frontend
 - [ ] 登录返回 JWT；未带 Token 访问受保护接口 → `UNAUTHORIZED`  
 - [ ] 已保存词 → 查词 `source=db`；未保存 → `source=ai` 且未自动入库  
 - [ ] 手动保存后列表可分页；删除后列表不再出现  
+- [ ]（可选）工作台「导出 CSV」可下载；统计区能加载或优雅降级  
 
 ### 工程
 
 - [ ] `docker compose up -d --build` 三服务正常  
 - [ ] 仅通过 **80 或 443** 完成全部操作（不直连 backend/db 端口）  
 - [ ] 后端无 CORS、无 AutoMigrate  
-- [ ] `docs/api.md`、`docs/db.md` 可读且与实现一致  
+- [ ] `docs/api.md`（§1～§8）与 `docs/db.md` 可读且与 `main.go` / 表结构一致  
 
 ---
 
@@ -377,7 +429,7 @@ docker compose logs -f frontend
 - `docs/api.md` — API 全量说明  
 - `docs/db.md` — 表结构与关联  
 - `docs/init.sql` — 建表脚本  
-- `要求.md` — 作业原文  
+- 作业要求原文：教学方下发的 **`要求.md`**（可置于本目录根级；与上文「《要求.md》逐条核验」对应路径一致）
 
 ---
 
