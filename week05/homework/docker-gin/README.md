@@ -104,7 +104,7 @@ rg -i "cors|Access-Control" backend/ --glob "*.go" || true
 | Compose：`db`、`backend`、`frontend` | `docker-compose.yml` | **满足✅** |
 | 共享网络；仅暴露 frontend；容器名互访 | `networks: appnet`；仅 `frontend` 有 `ports`；Nginx → `backend:8080`，DSN `db:3306` | **满足✅** |
 | `backend` `depends_on` `db` | 已配置 | **满足✅** |
-| **禁止 AutoMigrate**；`init.sql` 挂 `docker-entrypoint-initdb.d` | `docs/init.sql` 挂载；代码无 `AutoMigrate`；`pkg/db/migrate.go` 仅对历史列做幂等 `ALTER`（不建表） | **满足✅** |
+| **禁止 AutoMigrate**；`init.sql` 挂 `docker-entrypoint-initdb.d` | `docs/init.sql` 挂载；代码无 `AutoMigrate`、无启动期 DDL | **满足✅** |
 | 对外 80/443 等 | `ports: "80:80"`、`"443:443"`；镜像内自签名 TLS | **满足✅** |
 
 **仓库自检命令（可选）**：
@@ -204,8 +204,7 @@ week05/homework/docker-gin
 │       ├── config/
 │       │   └── config.go             # Viper 读环境变量 / .env
 │       ├── db/
-│       │   ├── mysql.go              # 连接池、重试连接
-│       │   └── migrate.go            # 幂等结构补丁（非 AutoMigrate 建表）
+│       │   └── mysql.go              # 连接池、重试连接
 │       └── ai/
 │           └── openai_compatible.go  # 调用 OpenAI 兼容 Chat Completions
 ├── frontend/                         # Vite + Vanilla JS 前端

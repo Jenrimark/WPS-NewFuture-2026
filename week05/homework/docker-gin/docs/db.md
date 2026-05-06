@@ -36,6 +36,6 @@
 - `users (1) -> (N) words`：一个用户可以保存多条单词记录。
 - 删除单词采用软删除：仅更新 `words.deleted_at`，列表与查询均过滤 `deleted_at IS NULL`。
 
-## 4. 旧库结构对齐（非 AutoMigrate）
+## 4. 结构变更原则
 
-历史版本曾在 `words` 表上包含 `notes` 列；当前 `init.sql` 已移除该列。后端在 MySQL 连接成功后执行 `pkg/db/migrate.go` 中的幂等迁移：若检测到 `words.notes` 仍存在则执行 `ALTER TABLE words DROP COLUMN notes`，否则跳过。无需手工执行 SQL；若需离线处理，可对 `wordapp` 库自行执行同一条 `DROP COLUMN`（列已不存在时 MySQL 会报错，请先查 `information_schema.COLUMNS`）。
+表结构**仅以** `docs/init.sql` 为准；应用代码中**不**执行 `AutoMigrate`，也**不**在启动时执行 `ALTER TABLE` 等 DDL。若本地曾用过含旧列（如历史 `words.notes`）的数据卷且与新脚本不一致，请使用 `docker compose down -v` 清空卷后重新 `up`（会重新执行 `init.sql`），或在 MySQL 内自行核对 `information_schema` 后手工调整至与 `init.sql` 一致。

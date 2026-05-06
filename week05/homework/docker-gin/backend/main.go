@@ -20,9 +20,6 @@ func main() {
 	r.Use(gin.Logger(), gin.Recovery())
 
 	database := db.MustConnectMySQL(cfg.MySQLDSN)
-	if err := db.RunStructuralMigrations(database); err != nil {
-		log.Fatalf("[db] migrations failed: %v", err)
-	}
 
 	authSvc := service.NewAuthService(database, cfg.JWTSecret)
 	wordSvc := service.NewWordService(database, cfg)
