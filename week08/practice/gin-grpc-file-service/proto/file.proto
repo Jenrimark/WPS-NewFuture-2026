@@ -1,0 +1,47 @@
+syntax = "proto3";
+
+package file.v1;
+
+option go_package = "local.dev/ginfilepb/gen/filepb;filepb";
+
+// 文件元数据
+message FileRecord {
+  int64 id = 1;
+  string original_name = 2;
+  string stored_name = 3;
+  int64 size = 4;
+  string mime_type = 5;
+  string path = 6;
+}
+
+message SaveFileRecordRequest {
+  string original_name = 1;
+  string stored_name = 2;
+  int64 size = 3;
+  string mime_type = 4;
+  string path = 5;
+}
+
+message SaveFileRecordResponse {
+  int64 id = 1;
+}
+
+message ListFilesRequest {}
+
+message ListFilesResponse {
+  repeated FileRecord files = 1;
+}
+
+message GetFileByIdRequest {
+  int64 id = 1;
+}
+
+message GetFileByIdResponse {
+  FileRecord file = 1;
+}
+
+service FileService {
+  rpc SaveFileRecord(SaveFileRecordRequest) returns (SaveFileRecordResponse);
+  rpc ListFiles(ListFilesRequest) returns (ListFilesResponse);
+  rpc GetFileById(GetFileByIdRequest) returns (GetFileByIdResponse);
+}

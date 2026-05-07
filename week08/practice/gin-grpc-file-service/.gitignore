@@ -1,0 +1,8 @@
+# 本地上传与数据库
+file-web/uploads/
+file-service/data/
+*.db
+
+# 构建产物
+*.exe
+*.test
