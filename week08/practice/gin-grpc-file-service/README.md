@@ -53,13 +53,24 @@ go run ./cmd
 
 ## HTTP 示例
 
-批量上传（字段名 `files`，可多文件）：
+以下路径为**本机演示**用的绝对路径（`curl` 在任意目录执行均可）；若你机器上路径不同，把 `files=@…` 换成自己的文件即可。
+
+批量上传（字段名 `files`，一次 5 张）：
 
 ```bash
-curl -F "files=@./a.png" -F "files=@./b.txt" http://127.0.0.1:8080/api/files/uploads
+curl -F "files=@/Users/Jenrimark/Pictures/1.jpg" \
+  -F "files=@/Users/Jenrimark/Pictures/2.jpg" \
+  -F "files=@/Users/Jenrimark/Pictures/3.jpg" \
+  -F "files=@/Users/Jenrimark/Pictures/4.jpg" \
+  -F "files=@/Users/Jenrimark/Pictures/5.jpg" \
+  http://127.0.0.1:8080/api/files/uploads
 ```
 
-单文件也可用字段名 `file`。
+单文件也可用字段名 `file`：
+
+```bash
+curl -F "file=@/Users/Jenrimark/Pictures/1.jpg" http://127.0.0.1:8080/api/files/uploads
+```
 
 列表：
 
@@ -67,7 +78,7 @@ curl -F "files=@./a.png" -F "files=@./b.txt" http://127.0.0.1:8080/api/files/upl
 curl http://127.0.0.1:8080/api/files
 ```
 
-按 ID 下载：
+按 ID 下载（文件保存在**执行 `curl` 时终端的当前目录**，`-OJ` 使用服务端返回的文件名）：
 
 ```bash
 curl -OJ http://127.0.0.1:8080/api/files/download/1
