@@ -43,7 +43,7 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
     <div className="min-h-screen flex items-center justify-center bg-background">
       <div className="w-full max-w-sm p-8 space-y-6">
         <div className="text-center space-y-2">
-          <h1 className="text-2xl font-semibold tracking-tight">海报设计器</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">灵犀工坊</h1>
           <p className="text-sm text-muted-foreground">
             {isRegister ? '创建新账户' : '登录您的账户'}
           </p>

@@ -60,7 +60,7 @@ export default function Header({ onLogout }: HeaderProps) {
     if (!fc) return
     const dataURL = fc.toDataURL({ format: 'png', multiplier: 2 })
     const link = document.createElement('a')
-    link.download = 'poster.png'
+    link.download = 'linxcraft-poster.png'
     link.href = dataURL
     link.click()
   }
@@ -72,7 +72,7 @@ export default function Header({ onLogout }: HeaderProps) {
         <div className="w-7 h-7 rounded-lg bg-primary flex items-center justify-center">
           <Pencil className="w-4 h-4 text-primary-foreground" />
         </div>
-        <span className="text-sm font-semibold tracking-tight">海报设计器</span>
+        <span className="text-sm font-semibold tracking-tight">灵犀工坊</span>
       </div>
 
       {/* Center: Undo / Redo */}
