@@ -6,6 +6,8 @@ x64
 .vs/
 .vscode
 .kiro
+/docs
+.claude
 .cursor
 *.exe
 /test
@@ -47,9 +49,10 @@ dist-ssr
 !week03/homework/course/client/dist
 !week03/homework/course/client/dist/**
 
+
 # Don't upload lockfile (keeps diffs noisy)
 /week03/homework/course/package-lock.json
-
+/week07/homework/poster/docs
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
@@ -64,6 +67,8 @@ dist-ssr
 # 任意目录下的 .env；模板文件 .env.example 保留跟踪
 .env
 !.env.example
+# Week07 海报作业：课程要求提交 poster/.env 供批改（仅此路径例外）
+!week07/homework/poster/.env
 .env.local
 .env.*.local
 .env.development
