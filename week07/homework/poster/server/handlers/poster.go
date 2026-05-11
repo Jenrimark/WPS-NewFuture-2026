@@ -13,10 +13,11 @@ import (
 type PosterHandler struct{}
 
 type posterRequest struct {
-	Title string `json:"title"`
-	Width int    `json:"width"`
-	Height int   `json:"height"`
-	Data  string `json:"data"`
+	Title    string `json:"title"`
+	Width    int    `json:"width"`
+	Height   int    `json:"height"`
+	Data     string `json:"data"`
+	ThumbURL string `json:"thumb_url"`
 }
 
 func (h *PosterHandler) List(c *gin.Context) {
@@ -51,11 +52,12 @@ func (h *PosterHandler) Create(c *gin.Context) {
 	}
 
 	poster := models.Poster{
-		UserID: userID,
-		Title:  req.Title,
-		Width:  req.Width,
-		Height: req.Height,
-		Data:   req.Data,
+		UserID:   userID,
+		Title:    req.Title,
+		Width:    req.Width,
+		Height:   req.Height,
+		Data:     req.Data,
+		ThumbURL: req.ThumbURL,
 	}
 
 	if err := database.DB.Create(&poster).Error; err != nil {
@@ -115,6 +117,9 @@ func (h *PosterHandler) Update(c *gin.Context) {
 	}
 	if req.Data != "" {
 		updates["data"] = req.Data
+	}
+	if req.ThumbURL != "" {
+		updates["thumb_url"] = req.ThumbURL
 	}
 
 	if err := database.DB.Model(&poster).Updates(updates).Error; err != nil {

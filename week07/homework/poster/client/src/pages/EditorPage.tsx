@@ -1,78 +1,60 @@
-import Header from '@/components/layout/Header'
-import LeftPanel from '@/components/layout/LeftPanel'
-import CanvasArea from '@/components/layout/CanvasArea'
-import RightPanel from '@/components/layout/RightPanel'
-import ContextMenu from '@/components/shared/ContextMenu'
-import { useElementStore } from '@/store/element-store'
+import { useCallback, useEffect, useRef } from "react";
+import { useSearchParams } from "react-router-dom";
+import { CanvasBoard } from "../components/editor/CanvasBoard";
+import { EditorToolbar } from "../components/editor/EditorToolbar";
+import { MaterialPanel } from "../components/editor/MaterialPanel";
+import { PropertyPanel } from "../components/editor/PropertyPanel";
+import { ZoomControls } from "../components/editor/ZoomControls";
+import { getPoster } from "../api/posters";
+import { parsePosterData } from "../lib/posterData";
+import { useEditorStore } from "../stores/editorStore";
 
-interface EditorPageProps {
-  onLogout: () => void
-}
+export function EditorPage() {
+  const exportFn = useRef<() => string | undefined>(() => undefined);
+  const [params] = useSearchParams();
+  const posterParam = params.get("poster");
+  const hydrateFromSnapshot = useEditorStore((s) => s.hydrateFromSnapshot);
+  const setPosterMeta = useEditorStore((s) => s.setPosterMeta);
 
-export default function EditorPage({ onLogout }: EditorPageProps) {
-  const { selectedId, moveLayerUp, moveLayerDown, moveToTop, moveToBottom, removeElement } = useElementStore()
+  useEffect(() => {
+    if (!posterParam) return;
+    const id = Number(posterParam);
+    if (!Number.isFinite(id)) return;
 
-  const handleContextAction = (action: string) => {
-    if (!selectedId) return
-    switch (action) {
-      case 'moveUp': moveLayerUp(selectedId); break
-      case 'moveDown': moveLayerDown(selectedId); break
-      case 'moveToTop': moveToTop(selectedId); break
-      case 'moveToBottom': moveToBottom(selectedId); break
-      case 'delete': removeElement(selectedId); break
-      case 'alignH': {
-        const getCanvas = (window as unknown as Record<string, unknown>).__getFabricCanvas as (() => unknown) | undefined
-        const canvas = getCanvas?.() as { width: number; getObjects: () => Array<{ id?: string; set: (p: Record<string, unknown>) => void; width: number; scaleX: number; setCoords: () => void }>; renderAll: () => void } | undefined
-        if (canvas) {
-          const obj = canvas.getObjects().find((o) => o.id === selectedId)
-          if (obj) {
-            obj.set({ left: canvas.width / 2 - (obj.width * (obj.scaleX || 1)) / 2 })
-            obj.setCoords()
-            canvas.renderAll()
-          }
-        }
-        break
+    let cancelled = false;
+    void (async () => {
+      try {
+        const p = await getPoster(id);
+        if (cancelled) return;
+        const parsed = parsePosterData(p.data || "{}");
+        hydrateFromSnapshot(parsed);
+        setPosterMeta(p.id, p.title);
+      } catch {
+        /* ignore */
       }
-      case 'alignV': {
-        const getCanvas = (window as unknown as Record<string, unknown>).__getFabricCanvas as (() => unknown) | undefined
-        const canvas = getCanvas?.() as { height: number; getObjects: () => Array<{ id?: string; set: (p: Record<string, unknown>) => void; height: number; scaleY: number; setCoords: () => void }>; renderAll: () => void } | undefined
-        if (canvas) {
-          const obj = canvas.getObjects().find((o) => o.id === selectedId)
-          if (obj) {
-            obj.set({ top: canvas.height / 2 - (obj.height * (obj.scaleY || 1)) / 2 })
-            obj.setCoords()
-            canvas.renderAll()
-          }
-        }
-        break
-      }
-      case 'copy': {
-        const getCanvas = (window as unknown as Record<string, unknown>).__getFabricCanvas as (() => unknown) | undefined
-        const canvas = getCanvas?.() as { getObjects: () => Array<{ id?: string; clone: (cb: (cloned: { set: (p: Record<string, unknown>) => void }) => void) => void; left: number; top: number }>; add: (obj: unknown) => void; renderAll: () => void } | undefined
-        if (canvas) {
-          const obj = canvas.getObjects().find((o) => o.id === selectedId)
-          if (obj) {
-            obj.clone((cloned) => {
-              cloned.set({ left: (obj.left || 0) + 20, top: (obj.top || 0) + 20 })
-              canvas.add(cloned)
-              canvas.renderAll()
-            })
-          }
-        }
-        break
-      }
-    }
-  }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [posterParam, hydrateFromSnapshot, setPosterMeta]);
+
+  const onExportReady = useCallback((fn: () => string | undefined) => {
+    exportFn.current = fn;
+  }, []);
+
+  const getExportDataUrl = useCallback(() => exportFn.current(), []);
 
   return (
-    <div className="h-screen flex flex-col bg-background overflow-hidden">
-      <Header onLogout={onLogout} />
-      <div className="flex flex-1 overflow-hidden">
-        <LeftPanel />
-        <CanvasArea />
-        <RightPanel />
+    <div className="flex h-[100dvh] flex-col overflow-hidden bg-surface">
+      <EditorToolbar getExportDataUrl={getExportDataUrl} />
+      <div className="flex min-h-0 flex-1">
+        <MaterialPanel />
+        <div className="flex min-w-0 flex-1 flex-col">
+          <CanvasBoard onExportReady={onExportReady} />
+          <ZoomControls />
+        </div>
+        <PropertyPanel />
       </div>
-      <ContextMenu onAction={handleContextAction} />
     </div>
-  )
+  );
 }

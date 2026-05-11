@@ -1,27 +1,27 @@
-import { useState } from 'react'
-import LoginPage from './pages/LoginPage'
-import EditorPage from './pages/EditorPage'
+import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
+import { ProtectedRoute } from "./components/ProtectedRoute";
+import { EditorPage } from "./pages/EditorPage";
+import { HomePage } from "./pages/HomePage";
+import { LoginPage } from "./pages/LoginPage";
+import { RegisterPage } from "./pages/RegisterPage";
 
-function App() {
-  const [token, setToken] = useState<string | null>(
-    localStorage.getItem('token')
-  )
-
-  const handleLogin = (t: string) => {
-    localStorage.setItem('token', t)
-    setToken(t)
-  }
-
-  const handleLogout = () => {
-    localStorage.removeItem('token')
-    setToken(null)
-  }
-
-  if (!token) {
-    return <LoginPage onLogin={handleLogin} />
-  }
-
-  return <EditorPage onLogout={handleLogout} />
+export default function App() {
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<HomePage />} />
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/register" element={<RegisterPage />} />
+        <Route
+          path="/editor"
+          element={
+            <ProtectedRoute>
+              <EditorPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </BrowserRouter>
+  );
 }
-
-export default App

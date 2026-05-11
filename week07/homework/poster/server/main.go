@@ -41,6 +41,12 @@ func main() {
 			protected.GET("/posters/:id", poster.Get)
 			protected.PUT("/posters/:id", poster.Update)
 			protected.DELETE("/posters/:id", poster.Delete)
+
+			ossH := &handlers.OSSHandler{Config: cfg}
+			protected.GET("/oss/sts", ossH.GetSTS)
+
+			aiH := &handlers.AIHandler{Config: cfg}
+			protected.POST("/ai/generate", aiH.Generate)
 		}
 	}
 
