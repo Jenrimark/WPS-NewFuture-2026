@@ -3,6 +3,7 @@ package handlers
 import (
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"poster-server/config"
@@ -19,9 +20,25 @@ type OSSHandler struct {
 // GET /api/oss/sts — 返回临时凭证供前端直传 OSS
 func (h *OSSHandler) GetSTS(c *gin.Context) {
 	cfg := h.Config
-	if cfg.AliAccessKeyID == "" || cfg.AliAccessKeySecret == "" || cfg.AliRAMRoleARN == "" || cfg.OSSBucket == "" {
+	var missing []string
+	if strings.TrimSpace(cfg.AliAccessKeyID) == "" {
+		missing = append(missing, "ALIYUN_ACCESS_KEY_ID")
+	}
+	if strings.TrimSpace(cfg.AliAccessKeySecret) == "" {
+		missing = append(missing, "ALIYUN_ACCESS_KEY_SECRET")
+	}
+	if strings.TrimSpace(cfg.AliRAMRoleARN) == "" {
+		missing = append(missing, "ALIYUN_RAM_ROLE_ARN")
+	}
+	if strings.TrimSpace(cfg.OSSBucket) == "" {
+		missing = append(missing, "OSS_BUCKET")
+	}
+	if len(missing) > 0 {
 		c.JSON(http.StatusServiceUnavailable, gin.H{
-			"error": "未配置 OSS（需 ALIYUN_ACCESS_KEY_ID / ALIYUN_ACCESS_KEY_SECRET / ALIYUN_RAM_ROLE_ARN / OSS_BUCKET）",
+			"error": fmt.Sprintf(
+				"未配置 OSS：缺少 %s。请在 poster/.env 填写后重启后端（参见 .env.example）。",
+				strings.Join(missing, "、"),
+			),
 		})
 		return
 	}

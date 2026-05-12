@@ -49,6 +49,8 @@ export interface EditorStateShape extends EditorSnapshot {
   scale: number;
   selectedIds: string[];
   placement: PlacementMode;
+  /** 最近一次 AI 生成的百炼临时图 URL，用于素材区「保存到我的 OSS」提示；转存成功后清空 */
+  pendingAiImageSrc: string | null;
   past: EditorSnapshot[];
   future: EditorSnapshot[];
   guideLines: { vertical: number[]; horizontal: number[] };
@@ -61,6 +63,9 @@ export interface EditorStore extends EditorStateShape {
   setSelected: (ids: string[]) => void;
   clearSelection: () => void;
   setPlacement: (p: PlacementMode) => void;
+  setPendingAiImageSrc: (src: string | null) => void;
+  /** 将画布与放置预览中所有匹配 from 的图片 src 替换为 to，并入撤销栈 */
+  replaceImageSrcAll: (from: string, to: string) => void;
 
   setCanvasSize: (w: number, h: number) => void;
   setLockAspect: (lock: boolean) => void;
@@ -172,6 +177,7 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
   scale: 1,
   selectedIds: [],
   placement: { kind: "idle" },
+  pendingAiImageSrc: null,
   past: [],
   future: [],
   guideLines: { vertical: [], horizontal: [] },
@@ -196,6 +202,7 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
       past: [],
       future: [],
       selectedIds: [],
+      pendingAiImageSrc: null,
     });
   },
 
@@ -203,6 +210,27 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
   setSelected: (ids) => set({ selectedIds: ids }),
   clearSelection: () => set({ selectedIds: [] }),
   setPlacement: (p) => set({ placement: p }),
+  setPendingAiImageSrc: (src) => set({ pendingAiImageSrc: src }),
+
+  replaceImageSrcAll: (from, to) => {
+    if (from === to) return;
+    get().pushHistory();
+    const g = get();
+    let placement = g.placement;
+    if (placement.kind === "image" && placement.src === from) {
+      placement = { kind: "image", src: to };
+    }
+    const pendingAiImageSrc = g.pendingAiImageSrc === from ? null : g.pendingAiImageSrc;
+    set({
+      elements: g.elements.map((e) => {
+        if (e.type !== "image") return e;
+        const im = e as ImageElement;
+        return im.src === from ? { ...im, src: to } : e;
+      }),
+      placement,
+      pendingAiImageSrc,
+    });
+  },
 
   setCanvasSize: (w, h) => {
     const g = get();

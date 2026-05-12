@@ -3,7 +3,7 @@ import { useState } from "react";
 import { useEditorStore, PRESET_IMAGES } from "../../stores/editorStore";
 import type { ShapeCategory, ShapeKind } from "../../types/editor";
 import { generateAIImage } from "../../api/ossAi";
-import { uploadLocalImage } from "../../lib/ossUpload";
+import { isDashscopeTemporaryImageUrl, uploadAIResultViaProxy, uploadLocalImage } from "../../lib/ossUpload";
 
 const TAB =
   "flex cursor-pointer flex-1 items-center justify-center gap-2 rounded-xl px-3 py-3 text-sm font-medium transition-colors duration-200";
@@ -27,7 +27,11 @@ export function MaterialPanel() {
   const [mainTab, setMainTab] = useState<"text" | "shape" | "image">("text");
   const [shapeCat, setShapeCat] = useState<ShapeCategory>("basic");
   const setPlacement = useEditorStore((s) => s.setPlacement);
+  const setPendingAiImageSrc = useEditorStore((s) => s.setPendingAiImageSrc);
+  const pendingAiImageSrc = useEditorStore((s) => s.pendingAiImageSrc);
+  const replaceImageSrcAll = useEditorStore((s) => s.replaceImageSrcAll);
   const [aiBusy, setAiBusy] = useState(false);
+  const [aiSaveBusy, setAiSaveBusy] = useState(false);
   const [aiPrompt, setAiPrompt] = useState("");
 
   const shapesFiltered = SHAPE_ITEMS.filter((s) => s.category === shapeCat);
@@ -173,6 +177,7 @@ export function MaterialPanel() {
                   try {
                     const { url } = await generateAIImage(aiPrompt.trim());
                     setPlacement({ kind: "image", src: url });
+                    setPendingAiImageSrc(isDashscopeTemporaryImageUrl(url) ? url : null);
                   } catch (err) {
                     alert(err instanceof Error ? err.message : "生成失败");
                   } finally {
@@ -182,6 +187,36 @@ export function MaterialPanel() {
               >
                 {aiBusy ? "生成中…" : "生成并用于画布"}
               </button>
+              <p className="mt-2 text-[11px] leading-relaxed text-slate-500">
+                默认仅加载百炼临时预览；改提示词后再次点击可重新生成。需要长期保存到您的 OSS 时再点下方按钮。
+              </p>
+              <p className="text-[11px] leading-relaxed text-slate-500">
+                保存成功后，对象在 Bucket 的「前缀目录」下（默认多为{" "}
+                <span className="font-mono text-slate-700">poster-uploads/</span>
+                ，与 <span className="font-mono">OSS_UPLOAD_PREFIX</span> 一致）。OSS
+                控制台根目录若显示为空，请点进该前缀文件夹或刷新列表。
+              </p>
+              {pendingAiImageSrc ? (
+                <button
+                  type="button"
+                  disabled={aiSaveBusy}
+                  className="mt-2 w-full cursor-pointer rounded-lg border border-brand-blue bg-white py-2 text-sm font-medium text-brand-blue-deep disabled:opacity-50"
+                  onClick={async () => {
+                    if (!pendingAiImageSrc) return;
+                    setAiSaveBusy(true);
+                    try {
+                      const ossUrl = await uploadAIResultViaProxy(pendingAiImageSrc);
+                      replaceImageSrcAll(pendingAiImageSrc, ossUrl);
+                    } catch (e) {
+                      alert(e instanceof Error ? e.message : "保存失败");
+                    } finally {
+                      setAiSaveBusy(false);
+                    }
+                  }}
+                >
+                  {aiSaveBusy ? "正在保存到 OSS…" : "保存到我的 OSS"}
+                </button>
+              ) : null}
             </div>
           </div>
         ) : null}

@@ -12,15 +12,28 @@ import (
 	"poster-server/middleware"
 
 	"github.com/gin-gonic/gin"
+	"github.com/joho/godotenv"
 )
 
+// loadDotEnvFiles 与 test/text2image_smoke.py 对齐：开发时在 server/ 下执行 go run . 时，
+// os.Getenv 读不到 poster/.env；Python 脚本会手动解析上一级 .env，故此处先尝试注入。
+func loadDotEnvFiles() {
+	for _, p := range []string{"../.env", ".env"} {
+		if err := godotenv.Load(p); err == nil {
+			log.Printf("已加载环境变量文件: %s", p)
+		}
+	}
+}
+
 func main() {
+	loadDotEnvFiles()
 	cfg := config.Load()
 
 	if err := database.Init(cfg); err != nil {
 		log.Fatal("数据库初始化失败:", err)
 	}
 	log.Println("数据库初始化成功")
+	log.Println("AI 图片：POST /api/ai/generate；拉取百炼图（需登录）GET /api/ai/proxy-image — 若 404 请重启后端以加载当前版本")
 
 	gin.SetMode(gin.ReleaseMode)
 	r := gin.Default()
@@ -47,6 +60,7 @@ func main() {
 
 			aiH := &handlers.AIHandler{Config: cfg}
 			protected.POST("/ai/generate", aiH.Generate)
+			protected.GET("/ai/proxy-image", aiH.ProxyImage)
 		}
 	}
 

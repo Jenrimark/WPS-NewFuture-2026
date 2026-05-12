@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
@@ -134,4 +135,52 @@ func (h *AIHandler) Generate(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusGatewayTimeout, gin.H{"error": "轮询超时，请稍后重试"})
+}
+
+// GET /api/ai/proxy-image?url=…
+// 百炼返回的图片在 *.aliyuncs.com 上常不带浏览器 CORS，前端 useImage(...,"anonymous") 会加载失败；
+// 由服务端拉取再回传，前端用 blob: 显示，画布导出也不被污染。
+func (h *AIHandler) ProxyImage(c *gin.Context) {
+	raw := strings.TrimSpace(c.Query("url"))
+	if raw == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "缺少 url 参数"})
+		return
+	}
+	parsed, err := url.Parse(raw)
+	if err != nil || parsed.Scheme != "https" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "仅支持 https 图片地址"})
+		return
+	}
+	host := strings.ToLower(parsed.Hostname())
+	if !strings.HasSuffix(host, ".aliyuncs.com") {
+		c.JSON(http.StatusForbidden, gin.H{"error": "不允许的图片域名"})
+		return
+	}
+
+	client := &http.Client{Timeout: 2 * time.Minute}
+	req, err := http.NewRequestWithContext(c.Request.Context(), http.MethodGet, raw, nil)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "构建请求失败"})
+		return
+	}
+	resp, err := client.Do(req)
+	if err != nil {
+		c.JSON(http.StatusBadGateway, gin.H{"error": fmt.Sprintf("拉取图片失败: %v", err)})
+		return
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		snippet, _ := io.ReadAll(io.LimitReader(resp.Body, 2048))
+		c.JSON(http.StatusBadGateway, gin.H{
+			"error": fmt.Sprintf("上游返回 %d: %s", resp.StatusCode, string(snippet)),
+		})
+		return
+	}
+	ct := resp.Header.Get("Content-Type")
+	if ct == "" || strings.HasPrefix(strings.ToLower(ct), "text/html") {
+		ct = "application/octet-stream"
+	}
+	c.Header("Content-Type", ct)
+	c.Header("Cache-Control", "private, max-age=300")
+	_, _ = io.Copy(c.Writer, resp.Body)
 }

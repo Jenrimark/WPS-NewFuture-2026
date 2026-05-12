@@ -10,8 +10,10 @@ import {
   ChevronsUp,
   SunMedium,
 } from "lucide-react";
+import { useState } from "react";
 import { useEditorStore } from "../../stores/editorStore";
 import type { ImageElement, ShapeElement, TextElement } from "../../types/editor";
+import { isDashscopeTemporaryImageUrl, uploadAIResultViaProxy } from "../../lib/ossUpload";
 
 const RECOMMENDED = [
   "#ffffff",
@@ -612,6 +614,10 @@ function ImageProps({
   pushHistory: () => void;
   updateElement: (id: string, patch: Partial<ImageElement>) => void;
 }) {
+  const replaceImageSrcAll = useEditorStore((s) => s.replaceImageSrcAll);
+  const [ossBusy, setOssBusy] = useState(false);
+  const showSaveOss = isDashscopeTemporaryImageUrl(el.src);
+
   return (
     <div className="space-y-4">
       <section className="rounded-xl border border-slate-200 p-3">
@@ -632,6 +638,26 @@ function ImageProps({
         <p className="mt-2 truncate text-xs text-slate-500" title={el.src}>
           {el.src.slice(0, 48)}…
         </p>
+        {showSaveOss ? (
+          <button
+            type="button"
+            disabled={ossBusy}
+            className="mt-3 w-full cursor-pointer rounded-lg border border-brand-blue bg-white py-2 text-xs font-medium text-brand-blue-deep disabled:opacity-50"
+            onClick={async () => {
+              setOssBusy(true);
+              try {
+                const ossUrl = await uploadAIResultViaProxy(el.src);
+                replaceImageSrcAll(el.src, ossUrl);
+              } catch (e) {
+                alert(e instanceof Error ? e.message : "保存失败");
+              } finally {
+                setOssBusy(false);
+              }
+            }}
+          >
+            {ossBusy ? "正在保存到 OSS…" : "保存到我的 OSS"}
+          </button>
+        ) : null}
       </section>
     </div>
   );

@@ -14,7 +14,7 @@ import {
   Transformer,
 } from "react-konva";
 import type Konva from "konva";
-import useImage from "use-image";
+import { useCanvasImage } from "../../lib/useCanvasImage";
 import { useEditorStore } from "../../stores/editorStore";
 import type {
   CanvasElement,
@@ -133,7 +133,7 @@ function ShapeDrawing({ el }: { el: ShapeElement }) {
 }
 
 function KonvaImageNode({ el }: { el: ImageElement }) {
-  const [img] = useImage(el.src, "anonymous");
+  const [img] = useCanvasImage(el.src);
   if (!img) {
     return (
       <Rect
@@ -225,7 +225,7 @@ export function CanvasBoard({
   );
   const [editingTextId, setEditingTextId] = useState<string | null>(null);
 
-  const [bgImg] = useImage(bgMode === "image" && bgImageSrc ? bgImageSrc : "", "anonymous");
+  const [bgImg] = useCanvasImage(bgMode === "image" && bgImageSrc ? bgImageSrc : "");
 
   const sorted = useMemo(
     () => [...elements].sort((a, b) => a.zIndex - b.zIndex),
