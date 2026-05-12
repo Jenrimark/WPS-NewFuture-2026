@@ -10,14 +10,16 @@
   },
   "dependencies": {
     "ali-oss": "^6.23.0",
-    "konva": "^10.3.0",
+    "fabric": "^7.3.1",
     "lucide-react": "^1.14.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
-    "react-konva": "^19.2.4",
     "react-router-dom": "^7.15.0",
-    "use-image": "^1.1.4",
     "zustand": "^5.0.13"
+  },
+  "overrides": {
+    "@mapbox/node-pre-gyp": "2.0.3",
+    "jsdom": "^25.0.1"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.1.7",

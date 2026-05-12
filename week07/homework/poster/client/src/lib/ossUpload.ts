@@ -53,7 +53,7 @@ export async function uploadLocalImage(file: File): Promise<string> {
     });
     /**
      * 私有读 Bucket 下，裸的 https://bucket/endpoint/key 匿名 GET 会 403；
-     * 画布用 useCanvasImage → 服务端代理拉原图，也必须带签名才能 200。
+     * 画布（Fabric）加载跨域图时，服务端代理拉原图也必须带签名才能 200。
      */
     const signed = client.signatureUrl(key, {
       expires: 3300,
