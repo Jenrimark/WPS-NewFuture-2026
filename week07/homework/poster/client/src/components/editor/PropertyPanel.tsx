@@ -14,6 +14,7 @@ import { useState } from "react";
 import { useEditorStore } from "../../stores/editorStore";
 import type { ImageElement, ShapeElement, TextElement } from "../../types/editor";
 import { isDashscopeTemporaryImageUrl, uploadAIResultViaProxy } from "../../lib/ossUpload";
+import { FontLibraryPicker } from "./FontLibraryPicker";
 
 const RECOMMENDED = [
   "#ffffff",
@@ -290,20 +291,30 @@ function TextProps({
   pushHistory: () => void;
   updateElement: (id: string, patch: Partial<TextElement>) => void;
 }) {
+  const isSystemFont = FONTS.includes(el.fontFamily);
+  const selectValue = isSystemFont ? el.fontFamily : "__poster_oss_font__";
+
   return (
     <div className="space-y-4">
       <section className="rounded-xl border border-slate-200 p-3">
         <h3 className="mb-2 text-xs font-medium text-slate-500">文本</h3>
         <label className="block text-xs text-slate-600">
-          字体
+          系统字体
           <select
             className="mt-1 w-full rounded-lg border border-slate-200 px-2 py-1.5 text-sm"
-            value={el.fontFamily}
+            value={selectValue}
             onChange={(e) => {
+              const v = e.target.value;
+              if (v === "__poster_oss_font__") return;
               pushHistory();
-              updateElement(el.id, { fontFamily: e.target.value });
+              updateElement(el.id, { fontFamily: v });
             }}
           >
+            {!isSystemFont ? (
+              <option value="__poster_oss_font__" disabled>
+                当前为字体库字体（下方可切换）
+              </option>
+            ) : null}
             {FONTS.map((f) => (
               <option key={f} value={f}>
                 {f}
@@ -311,6 +322,13 @@ function TextProps({
             ))}
           </select>
         </label>
+        <div className="mt-3">
+          <FontLibraryPicker
+            currentFamily={el.fontFamily}
+            pushHistory={pushHistory}
+            onPick={(cssFamily) => updateElement(el.id, { fontFamily: cssFamily })}
+          />
+        </div>
         <label className="mt-2 block text-xs text-slate-600">
           字号
           <input

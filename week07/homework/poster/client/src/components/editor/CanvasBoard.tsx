@@ -26,6 +26,7 @@ import type {
 } from "../../types/editor";
 import { snapWithGuides } from "../../lib/snapGuides";
 import { uploadLocalImage } from "../../lib/ossUpload";
+import { ensureFontsForElements } from "../../lib/fontLibrary";
 
 const PAD = 72;
 const PLACE_CLICK_PX = 6;
@@ -245,6 +246,10 @@ export function CanvasBoard({
     () => [...elements].sort((a, b) => a.zIndex - b.zIndex),
     [elements],
   );
+
+  useEffect(() => {
+    void ensureFontsForElements(elements);
+  }, [elements]);
 
   const selectedId = selectedIds[0] ?? null;
 

@@ -1,5 +1,7 @@
 # ---- Stage 1: Build frontend ----
 FROM node:22-alpine AS frontend
+ARG VITE_FONT_LIBRARY_BASE_URL=
+ENV VITE_FONT_LIBRARY_BASE_URL=$VITE_FONT_LIBRARY_BASE_URL
 WORKDIR /app/client
 COPY client/package.json client/package-lock.json* ./
 RUN npm install
