@@ -252,6 +252,8 @@ export async function createFabricObjectFromElement(el: CanvasElement): Promise<
 export function patchElementFromFabricObject(
   obj: FabricObject,
   el: CanvasElement,
+  /** 场景坐标相对画板逻辑坐标的外边距（与 CanvasBoard 中工作区左上角偏移一致） */
+  scenePad = 0,
 ): Partial<CanvasElement> {
   const id = getPosterElementId(obj);
   if (!id || id !== el.id) return {};
@@ -262,10 +264,9 @@ export function patchElementFromFabricObject(
     const sy = t.scaleY || 1;
     const nw = Math.max(40, (t.width || el.width) * sx);
     const nh = Math.max(24, (t.height || el.height) * sy);
-    t.set({ width: nw, scaleX: 1, scaleY: 1 });
     return {
-      x: t.left ?? el.x,
-      y: t.top ?? el.y,
+      x: (t.left ?? el.x) - scenePad,
+      y: (t.top ?? el.y) - scenePad,
       width: nw,
       height: nh,
       rotation: t.angle ?? 0,
@@ -292,10 +293,9 @@ export function patchElementFromFabricObject(
     const ih = im.height || 1;
     const nw = Math.max(16, iw * sx);
     const nh = Math.max(16, ih * sy);
-    im.set({ scaleX: 1, scaleY: 1, width: nw, height: nh });
     return {
-      x: im.left ?? el.x,
-      y: im.top ?? el.y,
+      x: (im.left ?? el.x) - scenePad,
+      y: (im.top ?? el.y) - scenePad,
       width: nw,
       height: nh,
       rotation: im.angle ?? 0,
@@ -309,12 +309,11 @@ export function patchElementFromFabricObject(
       const c = o;
       const sc = c.scaleX || 1;
       const nr = Math.max(8, (c.radius || 0) * sc);
-      c.set({ radius: nr, scaleX: 1, scaleY: 1 });
       const sh = el as ShapeElement;
       const side = nr * 2;
       return {
-        x: (c.left ?? 0) - nr,
-        y: (c.top ?? 0) - nr,
+        x: (c.left ?? 0) - nr - scenePad,
+        y: (c.top ?? 0) - nr - scenePad,
         width: side,
         height: side,
         rotation: c.angle ?? 0,
@@ -330,11 +329,10 @@ export function patchElementFromFabricObject(
     const baseH = (o.height || (el as ShapeElement).height) * sy;
     const nw = Math.max(16, baseW);
     const nh = Math.max(16, baseH);
-    o.set({ scaleX: 1, scaleY: 1, width: nw, height: nh });
     const sh = el as ShapeElement;
     return {
-      x: o.left ?? el.x,
-      y: o.top ?? el.y,
+      x: (o.left ?? el.x) - scenePad,
+      y: (o.top ?? el.y) - scenePad,
       width: nw,
       height: nh,
       rotation: o.angle ?? 0,

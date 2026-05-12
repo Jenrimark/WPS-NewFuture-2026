@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Canvas, FabricObject, Group, Rect, Shadow, FabricImage } from "fabric";
+import { Canvas, FabricObject, FabricImage, Point, Rect, Shadow } from "fabric";
 import { useEditorStore } from "../../stores/editorStore";
 import type { CanvasElement, ShapeCategory, ShapeKind } from "../../types/editor";
 import { snapWithGuides } from "../../lib/snapGuides";
@@ -13,6 +13,13 @@ import {
 
 const PAD = 72;
 const PLACE_CLICK_PX = 6;
+
+/** 场景坐标 → 与画布同尺寸的叠加层 CSS 像素（含 viewportTransform） */
+function scenePointToOverlayCss(fc: Canvas, sceneX: number, sceneY: number): { x: number; y: number } {
+  const v = fc.viewportTransform;
+  const [a, b, c, d, e, f] = v;
+  return { x: a * sceneX + c * sceneY + e, y: b * sceneX + d * sceneY + f };
+}
 
 type PlaceRubber =
   | { kind: "text"; sx: number; sy: number; cx: number; cy: number }
@@ -35,6 +42,8 @@ export function CanvasBoard({
   const canvasElRef = useRef<HTMLCanvasElement>(null);
   const fabricRef = useRef<Canvas | null>(null);
   const gestureHistoryPushedRef = useRef(false);
+  /** 防止 React Strict Mode 下 setState updater 重复执行导致同一放置手势 add 两次 */
+  const placementCommittedRef = useRef(false);
 
   const {
     elements,
@@ -44,7 +53,6 @@ export function CanvasBoard({
     bgMode,
     bgColor,
     bgImageSrc,
-    selectedIds,
     guideLines,
   } = useEditorStore();
 
@@ -106,25 +114,16 @@ export function CanvasBoard({
     placementListenersRef.current = null;
   }, []);
 
-  const logicalFromClient = useCallback(
-    (clientX: number, clientY: number) => {
-      const fc = fabricRef.current;
-      if (!fc) return null;
-      const rect = fc.upperCanvasEl.getBoundingClientRect();
-      const px = clientX - rect.left;
-      const py = clientY - rect.top;
-      const st = useEditorStore.getState();
-      const sc = st.scale;
-      const cw = st.canvasWidth;
-      const ch = st.canvasHeight;
-      let tx = (px - PAD) / sc;
-      let ty = (py - PAD) / sc;
-      tx = Math.max(0, Math.min(cw, tx));
-      ty = Math.max(0, Math.min(ch, ty));
-      return { tx, ty };
-    },
-    [],
-  );
+  const logicalFromClient = useCallback((clientX: number, clientY: number) => {
+    const fc = fabricRef.current;
+    if (!fc) return null;
+    const ev = { clientX, clientY } as PointerEvent;
+    const p = fc.getScenePoint(ev);
+    const st = useEditorStore.getState();
+    const tx = Math.max(0, Math.min(st.canvasWidth, p.x - PAD));
+    const ty = Math.max(0, Math.min(st.canvasHeight, p.y - PAD));
+    return { tx, ty };
+  }, []);
 
   const attachPlacementDragListeners = useCallback(() => {
     clearPlacementDragListeners();
@@ -136,7 +135,10 @@ export function CanvasBoard({
     const onUp = () => {
       clearPlacementDragListeners();
       setPlaceRubber((prev) => {
-        if (prev) finalizePlacement(prev);
+        if (prev && !placementCommittedRef.current) {
+          placementCommittedRef.current = true;
+          finalizePlacement(prev);
+        }
         return null;
       });
     };
@@ -186,8 +188,6 @@ export function CanvasBoard({
     [logicalFromClient],
   );
 
-  const selectedId = selectedIds[0] ?? null;
-
   useEffect(() => {
     const el = canvasElRef.current;
     if (!el) return;
@@ -215,7 +215,7 @@ export function CanvasBoard({
       if (!id) return;
       const elModel = useEditorStore.getState().elements.find((e) => e.id === id);
       if (!elModel) return;
-      const patch = patchElementFromFabricObject(obj, elModel);
+      const patch = patchElementFromFabricObject(obj, elModel, PAD);
       if (Object.keys(patch).length) useEditorStore.getState().updateElement(id, patch);
     };
 
@@ -230,17 +230,23 @@ export function CanvasBoard({
       if (!elModel) return;
       const cur = {
         id,
-        x: obj.left ?? 0,
-        y: obj.top ?? 0,
+        x: (obj.left ?? 0) - PAD,
+        y: (obj.top ?? 0) - PAD,
         width: elModel.width,
         height: elModel.height,
       };
       const sn = snapWithGuides(cur, st.canvasWidth, st.canvasHeight, st.elements);
-      obj.set({ left: sn.x, top: sn.y });
-      st.setGuideLines({
-        vertical: sn.vertical.map((v) => PAD + v * st.scale),
-        horizontal: sn.horizontal.map((h) => PAD + h * st.scale),
-      });
+      obj.set({ left: sn.x + PAD, top: sn.y + PAD });
+      const fc = fabricRef.current;
+      if (fc) {
+        const vpt = fc.viewportTransform;
+        const sx = (paperX: number) => vpt[0] * paperX + vpt[4];
+        const sy = (paperY: number) => vpt[3] * paperY + vpt[5];
+        st.setGuideLines({
+          vertical: sn.vertical.map((v) => sx(PAD + v)),
+          horizontal: sn.horizontal.map((h) => sy(PAD + h)),
+        });
+      }
     };
 
     const onScaleRotate = () => {
@@ -281,11 +287,13 @@ export function CanvasBoard({
       const { tx, ty } = p;
       const pl = useEditorStore.getState().placement;
       if (pl.kind === "text") {
+        placementCommittedRef.current = false;
         setPlaceRubber({ kind: "text", sx: tx, sy: ty, cx: tx, cy: ty });
         attachPlacementDragListeners();
         return;
       }
       if (pl.kind === "shape") {
+        placementCommittedRef.current = false;
         setPlaceRubber({
           kind: "shape",
           shapeKind: pl.shapeKind,
@@ -299,6 +307,7 @@ export function CanvasBoard({
         return;
       }
       if (pl.kind === "image") {
+        placementCommittedRef.current = false;
         setPlaceRubber({ kind: "image", src: pl.src, sx: tx, sy: ty, cx: tx, cy: ty });
         attachPlacementDragListeners();
       }
@@ -383,56 +392,62 @@ export function CanvasBoard({
       });
 
       const st = useEditorStore.getState();
+      const cw = st.canvasWidth;
+      const ch = st.canvasHeight;
+
       const innerBg =
         st.bgMode === "image" && bgImageEl
           ? new FabricImage(bgImageEl, {
-              left: 0,
-              top: 0,
-              scaleX: st.canvasWidth / (bgImageEl.naturalWidth || st.canvasWidth),
-              scaleY: st.canvasHeight / (bgImageEl.naturalHeight || st.canvasHeight),
+              left: PAD,
+              top: PAD,
+              scaleX: cw / (bgImageEl.naturalWidth || cw),
+              scaleY: ch / (bgImageEl.naturalHeight || ch),
               selectable: false,
               evented: true,
             })
           : new Rect({
-              left: 0,
-              top: 0,
-              width: st.canvasWidth,
-              height: st.canvasHeight,
+              left: PAD,
+              top: PAD,
+              width: cw,
+              height: ch,
               fill: st.bgColor,
               selectable: false,
               evented: true,
             });
 
       const paper = new Rect({
-        left: 0,
-        top: 0,
-        width: st.canvasWidth,
-        height: st.canvasHeight,
+        left: PAD,
+        top: PAD,
+        width: cw,
+        height: ch,
         fill: "transparent",
         shadow: new Shadow({ blur: 16, color: "rgba(15,23,42,0.12)", offsetX: 0, offsetY: 4 }),
         selectable: false,
         evented: false,
       });
 
-      const sheet = new Group([paper, innerBg], {
-        left: PAD,
-        top: PAD,
-        scaleX: st.scale,
-        scaleY: st.scale,
-        subTargetCheck: true,
-        interactive: true,
-      });
-
       const sortedEls = [...st.elements].sort((a, b) => a.zIndex - b.zIndex);
       const objs: FabricObject[] = [];
       for (const el of sortedEls) {
-        objs.push(await createFabricObjectFromElement(el));
+        const o = await createFabricObjectFromElement(el);
+        o.set({ left: (o.left ?? 0) + PAD, top: (o.top ?? 0) + PAD });
+        objs.push(o);
       }
       if (cancelled) return;
-      for (const o of objs) sheet.add(o);
 
       fc.add(mat);
-      fc.add(sheet);
+      fc.add(innerBg);
+      fc.add(paper);
+      for (const o of objs) fc.add(o);
+
+      fc.setViewportTransform([1, 0, 0, 1, 0, 0]);
+      fc.zoomToPoint(new Point(stageW / 2, stageH / 2), st.scale);
+      const vpt = [...fc.viewportTransform] as [number, number, number, number, number, number];
+      const wcx = PAD + cw / 2;
+      const wcy = PAD + ch / 2;
+      vpt[4] = stageW / 2 - wcx * vpt[0];
+      vpt[5] = stageH / 2 - wcy * vpt[3];
+      fc.setViewportTransform(vpt);
 
       const sel = useEditorStore.getState().selectedIds[0];
       if (sel) {
@@ -456,7 +471,6 @@ export function CanvasBoard({
     bgImageEl,
     stageW,
     stageH,
-    selectedId,
   ]);
 
   useEffect(() => {
@@ -491,16 +505,26 @@ export function CanvasBoard({
               />
             ))}
           </div>
-          {placeRubber ? (
-            <div
-              className="pointer-events-none absolute border-2 border-dashed border-brand-blue bg-brand-blue/10"
-              style={{
-                left: PAD + Math.min(placeRubber.sx, placeRubber.cx) * scale,
-                top: PAD + Math.min(placeRubber.sy, placeRubber.cy) * scale,
-                width: Math.max(1, Math.abs(placeRubber.cx - placeRubber.sx) * scale),
-                height: Math.max(1, Math.abs(placeRubber.cy - placeRubber.sy) * scale),
-              }}
-            />
+          {placeRubber && fabricRef.current ? (
+            (() => {
+              const fc = fabricRef.current!;
+              const sl = PAD + Math.min(placeRubber.sx, placeRubber.cx);
+              const st = PAD + Math.min(placeRubber.sy, placeRubber.cy);
+              const sr = PAD + Math.max(placeRubber.sx, placeRubber.cx);
+              const sb = PAD + Math.max(placeRubber.sy, placeRubber.cy);
+              const p1 = scenePointToOverlayCss(fc, sl, st);
+              const p2 = scenePointToOverlayCss(fc, sr, sb);
+              const ol = Math.min(p1.x, p2.x);
+              const ot = Math.min(p1.y, p2.y);
+              const ow = Math.max(1, Math.abs(p2.x - p1.x));
+              const oh = Math.max(1, Math.abs(p2.y - p1.y));
+              return (
+                <div
+                  className="pointer-events-none absolute border-2 border-dashed border-brand-blue bg-brand-blue/10"
+                  style={{ left: ol, top: ot, width: ow, height: oh }}
+                />
+              );
+            })()
           ) : null}
         </div>
       </div>
