@@ -80,9 +80,17 @@ export interface EditorStore extends EditorStateShape {
   canUndo: () => boolean;
   canRedo: () => boolean;
 
-  addTextAt: (x: number, y: number) => void;
-  addShapeAt: (kind: ShapeKind, category: ShapeCategory, x: number, y: number) => void;
-  addImageAt: (src: string, x: number, y: number) => void;
+  /** 未传宽高时 (x,y) 为新元素中心；传入宽高时 (x,y) 为左上角 */
+  addTextAt: (x: number, y: number, width?: number, height?: number) => void;
+  addShapeAt: (
+    kind: ShapeKind,
+    category: ShapeCategory,
+    x: number,
+    y: number,
+    width?: number,
+    height?: number,
+  ) => void;
+  addImageAt: (src: string, x: number, y: number, width?: number, height?: number) => void;
   updateElement: (id: string, patch: Partial<CanvasElement>) => void;
   removeElement: (id: string) => void;
   deleteSelected: () => void;
@@ -106,7 +114,7 @@ const defaultText = (): Omit<TextElement, "id" | "zIndex"> => ({
   height: 48,
   rotation: 0,
   opacity: 1,
-  text: "双击编辑文本",
+  text: "单击编辑文本",
   fontFamily: "Plus Jakarta Sans",
   fontSize: 28,
   fill: "#0f172a",
@@ -310,21 +318,52 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
   canUndo: () => get().past.length > 0,
   canRedo: () => get().future.length > 0,
 
-  addTextAt: (x, y) => {
+  addTextAt: (x, y, width, height) => {
     const g = get();
+    const base = defaultText();
+    if (width != null && height != null) {
+      const w = Math.max(80, width);
+      const h = Math.max(36, height);
+      const t: TextElement = {
+        id: uid(),
+        zIndex: nextZ(g.elements),
+        ...base,
+        x,
+        y,
+        width: w,
+        height: h,
+      };
+      set({ elements: [...g.elements, t], selectedIds: [t.id], placement: { kind: "idle" } });
+      return;
+    }
     const t: TextElement = {
       id: uid(),
       zIndex: nextZ(g.elements),
-      ...defaultText(),
-      x: x - 40,
-      y: y - 20,
+      ...base,
+      x: x - base.width / 2,
+      y: y - base.height / 2,
     };
     set({ elements: [...g.elements, t], selectedIds: [t.id], placement: { kind: "idle" } });
   },
 
-  addShapeAt: (kind, _category, x, y) => {
+  addShapeAt: (kind, _category, x, y, width, height) => {
     const g = get();
     const sh = defaultShape(kind);
+    if (width != null && height != null) {
+      const w = Math.max(24, width);
+      const h = Math.max(24, height);
+      const el: ShapeElement = {
+        id: uid(),
+        zIndex: nextZ(g.elements),
+        ...sh,
+        width: w,
+        height: h,
+        x,
+        y,
+      };
+      set({ elements: [...g.elements, el], selectedIds: [el.id], placement: { kind: "idle" } });
+      return;
+    }
     const el: ShapeElement = {
       id: uid(),
       zIndex: nextZ(g.elements),
@@ -335,15 +374,35 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
     set({ elements: [...g.elements, el], selectedIds: [el.id], placement: { kind: "idle" } });
   },
 
-  addImageAt: (src, x, y) => {
+  addImageAt: (src, x, y, width, height) => {
     const g = get();
+    const defW = 160;
+    const defH = 160;
+    if (width != null && height != null) {
+      const w = Math.max(48, width);
+      const h = Math.max(48, height);
+      const im: ImageElement = {
+        id: uid(),
+        type: "image",
+        x,
+        y,
+        width: w,
+        height: h,
+        rotation: 0,
+        opacity: 1,
+        zIndex: nextZ(g.elements),
+        src,
+      };
+      set({ elements: [...g.elements, im], selectedIds: [im.id], placement: { kind: "idle" } });
+      return;
+    }
     const im: ImageElement = {
       id: uid(),
       type: "image",
-      x: x - 80,
-      y: y - 80,
-      width: 160,
-      height: 160,
+      x: x - defW / 2,
+      y: y - defH / 2,
+      width: defW,
+      height: defH,
       rotation: 0,
       opacity: 1,
       zIndex: nextZ(g.elements),

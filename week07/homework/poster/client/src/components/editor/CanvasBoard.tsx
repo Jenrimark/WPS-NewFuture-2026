@@ -19,12 +19,29 @@ import { useEditorStore } from "../../stores/editorStore";
 import type {
   CanvasElement,
   ImageElement,
+  ShapeCategory,
   ShapeElement,
+  ShapeKind,
   TextElement,
 } from "../../types/editor";
 import { snapWithGuides } from "../../lib/snapGuides";
+import { uploadLocalImage } from "../../lib/ossUpload";
 
 const PAD = 72;
+const PLACE_CLICK_PX = 6;
+
+type PlaceRubber =
+  | { kind: "text"; sx: number; sy: number; cx: number; cy: number }
+  | {
+      kind: "shape";
+      shapeKind: ShapeKind;
+      category: ShapeCategory;
+      sx: number;
+      sy: number;
+      cx: number;
+      cy: number;
+    }
+  | { kind: "image"; src: string; sx: number; sy: number; cx: number; cy: number };
 
 function HeartShape({
   width,
@@ -207,16 +224,12 @@ export function CanvasBoard({
     bgColor,
     bgImageSrc,
     selectedIds,
-    placement,
     guideLines,
     setSelected,
     clearSelection,
     updateElement,
     setGuideLines,
     pushHistory,
-    addTextAt,
-    addShapeAt,
-    addImageAt,
     setPlacement,
   } = useEditorStore();
 
@@ -224,6 +237,7 @@ export function CanvasBoard({
     null,
   );
   const [editingTextId, setEditingTextId] = useState<string | null>(null);
+  const [placeRubber, setPlaceRubber] = useState<PlaceRubber | null>(null);
 
   const [bgImg] = useCanvasImage(bgMode === "image" && bgImageSrc ? bgImageSrc : "");
 
@@ -251,13 +265,120 @@ export function CanvasBoard({
     historyGesture.current = false;
   }, []);
 
+  const finalizePlacement = useCallback((r: PlaceRubber) => {
+    const s = useEditorStore.getState();
+    const { sx, sy, cx, cy } = r;
+    const dist = Math.hypot(cx - sx, cy - sy);
+    s.pushHistory();
+    if (dist < PLACE_CLICK_PX) {
+      if (r.kind === "text") s.addTextAt(sx, sy);
+      else if (r.kind === "shape") s.addShapeAt(r.shapeKind, r.category, sx, sy);
+      else s.addImageAt(r.src, sx, sy);
+    } else {
+      const left = Math.min(sx, cx);
+      const top = Math.min(sy, cy);
+      const rw = Math.abs(cx - sx);
+      const rh = Math.abs(cy - sy);
+      if (r.kind === "text") s.addTextAt(left, top, rw, rh);
+      else if (r.kind === "shape") s.addShapeAt(r.shapeKind, r.category, left, top, rw, rh);
+      else s.addImageAt(r.src, left, top, rw, rh);
+    }
+    endHistoryGesture();
+  }, [endHistoryGesture]);
+
+  const placementListenersRef = useRef<{
+    move: (ev: MouseEvent) => void;
+    up: (ev: MouseEvent) => void;
+  } | null>(null);
+
+  const clearPlacementDragListeners = useCallback(() => {
+    const cur = placementListenersRef.current;
+    if (!cur) return;
+    window.removeEventListener("mousemove", cur.move);
+    window.removeEventListener("mouseup", cur.up, { capture: true });
+    placementListenersRef.current = null;
+  }, []);
+
+  const attachPlacementDragListeners = useCallback(() => {
+    clearPlacementDragListeners();
+    const onMove = (ev: MouseEvent) => {
+      const st = stageRef.current;
+      if (!st) return;
+      const rect = st.container().getBoundingClientRect();
+      const px = ev.clientX - rect.left;
+      const py = ev.clientY - rect.top;
+      let tx = (px - PAD) / scale;
+      let ty = (py - PAD) / scale;
+      tx = Math.max(0, Math.min(canvasWidth, tx));
+      ty = Math.max(0, Math.min(canvasHeight, ty));
+      setPlaceRubber((prev) => (prev ? { ...prev, cx: tx, cy: ty } : null));
+    };
+    const onUp = () => {
+      clearPlacementDragListeners();
+      setPlaceRubber((prev) => {
+        if (prev) finalizePlacement(prev);
+        return null;
+      });
+    };
+    placementListenersRef.current = { move: onMove, up: onUp };
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp, { capture: true });
+  }, [clearPlacementDragListeners, finalizePlacement, canvasWidth, canvasHeight, scale]);
+
+  const handleCanvasDrop = useCallback(
+    async (e: React.DragEvent<HTMLDivElement>) => {
+      e.preventDefault();
+      const st = stageRef.current;
+      if (!st) return;
+      const rect = st.container().getBoundingClientRect();
+      const px = e.clientX - rect.left;
+      const py = e.clientY - rect.top;
+      let tx = (px - PAD) / scale;
+      let ty = (py - PAD) / scale;
+      if (tx < 0 || ty < 0 || tx > canvasWidth || ty > canvasHeight) return;
+      const raw =
+        e.dataTransfer.getData("application/poster-image-src") ||
+        e.dataTransfer.getData("text/plain");
+      const src = raw.trim();
+      if (src.startsWith("http")) {
+        useEditorStore.getState().pushHistory();
+        useEditorStore.getState().addImageAt(src, tx, ty);
+        return;
+      }
+      const f = e.dataTransfer.files?.[0];
+      if (f?.type.startsWith("image/")) {
+        try {
+          useEditorStore.getState().pushHistory();
+          const url = await uploadLocalImage(f);
+          useEditorStore.getState().addImageAt(url, tx, ty);
+        } catch {
+          alert("拖入上传失败，请检查 OSS/CORS 或改用较小图片");
+        }
+      }
+    },
+    [canvasWidth, canvasHeight, scale],
+  );
+
+  useEffect(
+    () => () => {
+      const cur = placementListenersRef.current;
+      if (cur) {
+        window.removeEventListener("mousemove", cur.move);
+        window.removeEventListener("mouseup", cur.up, { capture: true });
+        placementListenersRef.current = null;
+      }
+    },
+    [],
+  );
+
   const handleStageMouseDown = (e: Konva.KonvaEventObject<MouseEvent>) => {
     setMenu(null);
     const target = e.target;
     const stage = target.getStage();
     if (!stage) return;
 
-    if (target.name() === "editor-element") {
+    const kn = target as Konva.Node;
+    if (kn.findAncestor?.((n: Konva.Node) => n.name() === "editor-element", true)) {
       return;
     }
 
@@ -269,24 +390,37 @@ export function CanvasBoard({
 
     const tx = (pos.x - PAD) / scale;
     const ty = (pos.y - PAD) / scale;
+    if (tx < 0 || ty < 0 || tx > canvasWidth || ty > canvasHeight) return;
 
-    if (placement.kind === "text") {
-      beginHistory();
-      addTextAt(tx, ty);
-      endHistoryGesture();
+    const p = useEditorStore.getState().placement;
+    if (p.kind === "text") {
+      setPlaceRubber({ kind: "text", sx: tx, sy: ty, cx: tx, cy: ty });
+      attachPlacementDragListeners();
       return;
     }
-    if (placement.kind === "shape") {
-      beginHistory();
-      addShapeAt(placement.shapeKind, placement.category, tx, ty);
-      endHistoryGesture();
+    if (p.kind === "shape") {
+      setPlaceRubber({
+        kind: "shape",
+        shapeKind: p.shapeKind,
+        category: p.category,
+        sx: tx,
+        sy: ty,
+        cx: tx,
+        cy: ty,
+      });
+      attachPlacementDragListeners();
       return;
     }
-    if (placement.kind === "image") {
-      beginHistory();
-      addImageAt(placement.src, tx, ty);
-      endHistoryGesture();
-      return;
+    if (p.kind === "image") {
+      setPlaceRubber({
+        kind: "image",
+        src: p.src,
+        sx: tx,
+        sy: ty,
+        cx: tx,
+        cy: ty,
+      });
+      attachPlacementDragListeners();
     }
   };
 
@@ -317,8 +451,10 @@ export function CanvasBoard({
   useEffect(() => {
     const onKey = (ev: KeyboardEvent) => {
       if (ev.key === "Escape") {
+        clearPlacementDragListeners();
         setMenu(null);
         setEditingTextId(null);
+        setPlaceRubber(null);
         setPlacement({ kind: "idle" });
       }
       if ((ev.key === "Delete" || ev.key === "Backspace") && selectedId) {
@@ -329,7 +465,7 @@ export function CanvasBoard({
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [selectedId, editingTextId, setPlacement]);
+  }, [selectedId, editingTextId, setPlacement, setPlaceRubber, clearPlacementDragListeners]);
 
   const stageW = canvasWidth * scale + PAD * 2;
   const stageH = canvasHeight * scale + PAD * 2;
@@ -345,7 +481,14 @@ export function CanvasBoard({
   }, [onExportReady, canvasWidth, canvasHeight, scale]);
 
   return (
-    <div className="relative flex min-h-0 flex-1 flex-col bg-slate-200">
+    <div
+      className="relative flex min-h-0 flex-1 flex-col bg-slate-200"
+      onDragOver={(ev) => {
+        ev.preventDefault();
+        ev.dataTransfer.dropEffect = "copy";
+      }}
+      onDrop={(ev) => void handleCanvasDrop(ev)}
+    >
       <div className="flex min-h-0 flex-1 items-start justify-center overflow-auto p-4">
         <Stage
           ref={stageRef}
@@ -443,6 +586,23 @@ export function CanvasBoard({
                   }}
                 />
               ))}
+
+              {placeRubber ? (
+                <Rect
+                  x={Math.min(placeRubber.sx, placeRubber.cx)}
+                  y={Math.min(placeRubber.sy, placeRubber.cy)}
+                  width={Math.max(1, Math.abs(placeRubber.cx - placeRubber.sx))}
+                  height={Math.max(1, Math.abs(placeRubber.cy - placeRubber.sy))}
+                  fill="rgba(37,99,235,0.12)"
+                  stroke="#2563eb"
+                  strokeWidth={1 / Math.max(scale, 0.25)}
+                  dash={[
+                    6 / Math.max(scale, 0.25),
+                    4 / Math.max(scale, 0.25),
+                  ]}
+                  listening={false}
+                />
+              ) : null}
 
               <Transformer
                 ref={trRef}
@@ -597,7 +757,7 @@ function ElementNode({
       onTransformEnd={(e) => {
         onTransformEnd(e.target as Konva.Group);
       }}
-      onDblClick={(e) => {
+      onTap={(e) => {
         e.cancelBubble = true;
         if (el.type === "text") onDoubleText?.();
       }}

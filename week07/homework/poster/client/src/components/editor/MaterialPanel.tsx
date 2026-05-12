@@ -1,5 +1,5 @@
 import { Image as ImageIcon, Shapes, Type } from "lucide-react";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useEditorStore, PRESET_IMAGES } from "../../stores/editorStore";
 import type { ShapeCategory, ShapeKind } from "../../types/editor";
 import { generateAIImage } from "../../api/ossAi";
@@ -33,6 +33,7 @@ export function MaterialPanel() {
   const [aiBusy, setAiBusy] = useState(false);
   const [aiSaveBusy, setAiSaveBusy] = useState(false);
   const [aiPrompt, setAiPrompt] = useState("");
+  const presetWasDragging = useRef(false);
 
   const shapesFiltered = SHAPE_ITEMS.filter((s) => s.category === shapeCat);
 
@@ -68,7 +69,9 @@ export function MaterialPanel() {
       <div className="min-h-0 flex-1 overflow-y-auto p-4">
         {mainTab === "text" ? (
           <div className="space-y-3">
-            <p className="text-sm text-ink-muted">点击按钮后在画布上单击放置文本框。</p>
+            <p className="text-sm text-ink-muted">
+              点击「添加文本」后，在画布空白处<strong>单击</strong>放置默认框，或<strong>按住拖拽</strong>拉出文本区域。
+            </p>
             <button
               type="button"
               className="w-full cursor-pointer rounded-xl bg-brand-orange px-4 py-3 text-sm font-medium text-white shadow transition-colors hover:bg-brand-orange-deep"
@@ -116,23 +119,52 @@ export function MaterialPanel() {
                 </button>
               ))}
             </div>
-            <p className="text-xs text-ink-muted">选中后在画布点击放置；再次点击空白可取消。</p>
+            <p className="text-xs text-ink-muted">
+              选中形状后，在画布<strong>单击</strong>或<strong>拖拽</strong>绘制放置区域。
+            </p>
           </div>
         ) : null}
 
         {mainTab === "image" ? (
           <div className="space-y-4">
-            <p className="text-sm text-ink-muted">点击预设图后在画布上单击插入。</p>
+            <p className="text-sm text-ink-muted">
+              预设图可<strong>拖到画布</strong>松手插入，或点击后像形状一样在画布单击/拖拽放置；本地文件也可直接拖入画布。
+            </p>
             <div className="grid grid-cols-2 gap-2">
               {PRESET_IMAGES.map((src) => (
-                <button
+                <div
                   key={src}
-                  type="button"
-                  className="cursor-pointer overflow-hidden rounded-xl border border-slate-200 shadow-sm transition-transform hover:scale-[1.02]"
-                  onClick={() => setPlacement({ kind: "image", src })}
+                  role="button"
+                  tabIndex={0}
+                  draggable
+                  onDragStart={(e) => {
+                    presetWasDragging.current = true;
+                    e.dataTransfer.setData("application/poster-image-src", src);
+                    e.dataTransfer.setData("text/plain", src);
+                    e.dataTransfer.effectAllowed = "copy";
+                  }}
+                  onDragEnd={() => {
+                    window.setTimeout(() => {
+                      presetWasDragging.current = false;
+                    }, 0);
+                  }}
+                  className="cursor-grab overflow-hidden rounded-xl border border-slate-200 shadow-sm outline-none ring-brand-blue/30 transition-transform active:cursor-grabbing hover:scale-[1.02] focus-visible:ring-2"
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      setPlacement({ kind: "image", src });
+                    }
+                  }}
+                  onClick={() => {
+                    if (presetWasDragging.current) {
+                      presetWasDragging.current = false;
+                      return;
+                    }
+                    setPlacement({ kind: "image", src });
+                  }}
                 >
-                  <img src={src} alt="" className="aspect-square w-full object-cover" />
-                </button>
+                  <img src={src} alt="" draggable={false} className="pointer-events-none aspect-square w-full object-cover" />
+                </div>
               ))}
             </div>
 
@@ -187,15 +219,6 @@ export function MaterialPanel() {
               >
                 {aiBusy ? "生成中…" : "生成并用于画布"}
               </button>
-              <p className="mt-2 text-[11px] leading-relaxed text-slate-500">
-                默认仅加载百炼临时预览；改提示词后再次点击可重新生成。需要长期保存到您的 OSS 时再点下方按钮。
-              </p>
-              <p className="text-[11px] leading-relaxed text-slate-500">
-                保存成功后，对象在 Bucket 的「前缀目录」下（默认多为{" "}
-                <span className="font-mono text-slate-700">poster-uploads/</span>
-                ，与 <span className="font-mono">OSS_UPLOAD_PREFIX</span> 一致）。OSS
-                控制台根目录若显示为空，请点进该前缀文件夹或刷新列表。
-              </p>
               {pendingAiImageSrc ? (
                 <button
                   type="button"

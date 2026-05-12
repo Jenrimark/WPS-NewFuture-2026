@@ -406,29 +406,59 @@ function TextProps({
 
         <label className="mt-3 block text-xs text-slate-600">
           字间距 {el.letterSpacing}px
-          <input
-            type="range"
-            min={-5}
-            max={40}
-            step={0.5}
-            value={el.letterSpacing}
-            onPointerDown={() => pushHistory()}
-            onChange={(e) => updateElement(el.id, { letterSpacing: Number(e.target.value) })}
-            className="mt-1 w-full cursor-pointer"
-          />
+          <div className="mt-1 flex items-center gap-2">
+            <input
+              type="range"
+              min={-5}
+              max={40}
+              step={0.5}
+              value={el.letterSpacing}
+              onPointerDown={() => pushHistory()}
+              onChange={(e) => updateElement(el.id, { letterSpacing: Number(e.target.value) })}
+              className="min-w-0 flex-1 cursor-pointer"
+            />
+            <input
+              type="number"
+              step={0.5}
+              className="w-20 shrink-0 rounded-lg border border-slate-200 px-2 py-1 text-sm tabular-nums"
+              value={el.letterSpacing}
+              onPointerDown={() => pushHistory()}
+              onChange={(e) =>
+                updateElement(el.id, {
+                  letterSpacing: Math.min(40, Math.max(-5, Number(e.target.value) || 0)),
+                })
+              }
+            />
+          </div>
         </label>
         <label className="mt-2 block text-xs text-slate-600">
           行高 {el.lineHeight.toFixed(2)}
-          <input
-            type="range"
-            min={0.8}
-            max={3}
-            step={0.05}
-            value={el.lineHeight}
-            onPointerDown={() => pushHistory()}
-            onChange={(e) => updateElement(el.id, { lineHeight: Number(e.target.value) })}
-            className="mt-1 w-full cursor-pointer"
-          />
+          <div className="mt-1 flex items-center gap-2">
+            <input
+              type="range"
+              min={0.8}
+              max={3}
+              step={0.05}
+              value={el.lineHeight}
+              onPointerDown={() => pushHistory()}
+              onChange={(e) => updateElement(el.id, { lineHeight: Number(e.target.value) })}
+              className="min-w-0 flex-1 cursor-pointer"
+            />
+            <input
+              type="number"
+              min={0.8}
+              max={3}
+              step={0.05}
+              className="w-20 shrink-0 rounded-lg border border-slate-200 px-2 py-1 text-sm tabular-nums"
+              value={el.lineHeight}
+              onPointerDown={() => pushHistory()}
+              onChange={(e) =>
+                updateElement(el.id, {
+                  lineHeight: Math.min(3, Math.max(0.8, Number(e.target.value) || 1.2)),
+                })
+              }
+            />
+          </div>
         </label>
         <label className="mt-2 block text-xs text-slate-600">
           透明度 {Math.round(el.opacity * 100)}%
