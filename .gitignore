@@ -64,21 +64,26 @@ dist-ssr
 *.sw?
 
 # ---- 密钥与本地环境（切勿提交真实 KEY）----
-# 任意目录下的 .env；模板文件 .env.example 保留跟踪
+# 忽略所有 .env 文件
 .env
+# 保留 .env.example 模板文件（不含真实密钥）
 !.env.example
-# Week07 海报作业：课程要求提交 poster/.env 供批改（仅此路径例外）
-!week07/homework/poster/.env
+# 其他 .env 变体
 .env.local
 .env.*.local
 .env.development
 .env.production
+# 密钥文件
 *.pem
 *.key
 id_rsa
 id_rsa.pub
 *.p12
 *.pfx
+
+# ---- 特殊例外（仅限课程要求）----
+# Week07 海报作业：课程要求提交 poster/.env 供批改
+!week07/homework/poster/.env
 
 # ---- Go 构建产物 ----
 *.test
