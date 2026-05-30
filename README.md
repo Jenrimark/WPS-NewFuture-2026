@@ -4,3 +4,10 @@
 
 3\. 更多详细情况见 [高校训练营 Git 仓库须知](https://kdocs.cn/l/cdZi2WxolyLn)。
 
+## 相关链接
+
+- **用户中心：** https://campus.wps.cn/usercenter/home
+- **课程内容 1：** https://campus.wps.cn/contentpreview/07fa7fb8-df64-4306-addc-ffd305b968db
+- **课程内容 2：** https://campus.wps.cn/contentpreview/7e5a0755-818b-46a6-ba23-8071e3a634a6
+- **Git 仓库：** https://git.wpsit.cn/
+
