@@ -81,10 +81,6 @@ id_rsa.pub
 *.p12
 *.pfx
 
-# ---- 特殊例外（仅限课程要求）----
-# Week07 海报作业：课程要求提交 poster/.env 供批改
-!week07/homework/poster/.env
-
 # ---- Go 构建产物 ----
 *.test
 *.prof
