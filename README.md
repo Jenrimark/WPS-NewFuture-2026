@@ -11,16 +11,16 @@ WPS新未来训练营（2026）
 
 ## 项目结构
 
-| 目录 | 周次 | 项目 | 技术栈 | 说明 |
-|------|------|------|--------|------|
-| [1-LingXi](./1-LingXi/) | Week01 | 灵犀 AI 对话助手 | HTML + CSS + Vanilla JS | 仿 WPS 灵犀风格，接入阿里云百炼多模型，流式输出、Markdown 渲染、深色主题 |
-| [2-Course](./2-Course/) | Week03 | 在线学习管理平台 | React 19 + Vite + AntD / Node.js Koa + SQLite | 前后端分离，登录鉴权、工作台图表、课程与学生管理 |
-| [3-Billing](./3-Billing/) | Week04 | 阶梯电价与峰谷计费 | Go 1.22 | 阶梯电价 + 峰谷时段因子，含单元测试与流程图 |
-| [4-Docker-Gin](./4-Docker-Gin/) | Week05 | 英语单词学习助手 | Go Gin + GORM + MySQL + Nginx | 前后端分离，大模型生成释义与例句，Docker Compose 全栈部署 |
-| [5-Monitor](./5-Monitor/) | Week05 | 服务健康探测器 | Go 1.23 | 高并发 CLI 健康探测，HTTP/TCP、重试、超时、报表输出 |
-| [6-Gin-Fullstack](./6-Gin-Fullstack/) | Week06 | Gin Fullstack 二开 | Vue3 + Element Plus / Gin + Gorm + SQLite | 基于 gin-vue-admin 二开，含用户行为追踪 |
-| [7-Gin-Grpc-file-service](./6-Gin-Grpc-file-service/) | — | Gin + gRPC + SQLite 文件服务 | Go gRPC + Gin + SQLite | 双进程架构：gRPC 元数据服务 + Gin HTTP 文件上传下载 |
-| [8-Poster](./7-Poster/) | Week07 | 灵犀工坊 LinxCraft 在线海报设计器 | React + Fabric.js / Go + Gin | 大作业：可视化画布编辑、云端作品、OSS 直传、百炼文生图，单容器 Docker 部署 |
+| 目录 | 项目 | 技术栈 | 说明 |
+|------|------|--------|------|
+| [1-LingXi](./1-LingXi/) | 灵犀 AI 对话助手 | HTML + CSS + Vanilla JS | 仿 WPS 灵犀风格，接入阿里云百炼多模型，流式输出、Markdown 渲染、深色主题 |
+| [2-Course](./2-Course/) | 在线学习管理平台 | React 19 + Vite + AntD / Node.js Koa + SQLite | 前后端分离，登录鉴权、工作台图表、课程与学生管理 |
+| [3-Billing](./3-Billing/) | 阶梯电价与峰谷计费 | Go 1.22 | 阶梯电价 + 峰谷时段因子，含单元测试与流程图 |
+| [4-Docker-Gin](./4-Docker-Gin/) | 英语单词学习助手 | Go Gin + GORM + MySQL + Nginx | 前后端分离，大模型生成释义与例句，Docker Compose 全栈部署 |
+| [5-Monitor](./5-Monitor/) | 服务健康探测器 | Go 1.23 | 高并发 CLI 健康探测，HTTP/TCP、重试、超时、报表输出 |
+| [6-Gin-Fullstack](./6-Gin-Fullstack/) | Gin Fullstack 二开 | Vue3 + Element Plus / Gin + Gorm + SQLite | 基于 gin-vue-admin 二开，含用户行为追踪 |
+| [7-Gin-Grpc-file-service](./6-Gin-Grpc-file-service/) | Gin + gRPC + SQLite 文件服务 | Go gRPC + Gin + SQLite | 双进程架构：gRPC 元数据服务 + Gin HTTP 文件上传下载 |
+| [8-Poster](./7-Poster/) | 灵犀工坊 LinxCraft 在线海报设计器 | React + Fabric.js / Go + Gin | 大作业：可视化画布编辑、云端作品、OSS 直传、百炼文生图，单容器 Docker 部署 |
 
 ## 项目文档
 
